@@ -22,6 +22,13 @@
       "when": 1747749111635,
       "tag": "0002_curly_centennial",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1748023995060,
+      "tag": "0003_worthless_shen",
+      "breakpoints": true
     }
   ]
 }

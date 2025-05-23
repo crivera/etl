@@ -79,7 +79,7 @@ export const documentExtractions = createTable(
   {
     ...defaultColumns,
     documentId: text('document_id')
-      .references(() => documents.id)
+      .references(() => documents.id, { onDelete: 'cascade' })
       .notNull(),
     data: jsonb('data').notNull(),
     fields: jsonb('fields').notNull(),

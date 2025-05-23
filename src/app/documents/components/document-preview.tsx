@@ -238,8 +238,8 @@ export const DocumentPreview = ({
         <h2 className="text-lg font-semibold">Document Preview</h2>
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
-            size="icon"
+            variant="outline"
+            size="sm"
             onClick={() => openExtractionSidebar([document])}
           >
             Extract Data
