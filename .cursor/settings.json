@@ -1,0 +1,15 @@
+{
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  },
+  "javascript.preferences.importModuleSpecifier": "shortest",
+  "typescript.preferences.importModuleSpecifier": "shortest",
+  "javascript.preferences.importModuleSpecifierEnding": "minimal",
+  "typescript.preferences.importModuleSpecifierEnding": "minimal",
+  "javascript.suggest.paths": true,
+  "typescript.suggest.paths": true,
+  "typescript.preferences.preferRelativeImports": true,
+  "javascript.preferences.preferRelativeImports": true,
+  "typescript.preferences.maxRelativeImportDirectories": 1,
+  "javascript.preferences.maxRelativeImportDirectories": 1
+}

@@ -1,0 +1,24 @@
+# Dev tools
+.git
+.github
+.editorconfig
+.gitattributes
+.node-version
+
+# Docker files
+.dockerignore*
+Dockerfile*
+docker-compose*.yml
+
+# Readme
+README.md
+
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+Dockerfile
+.dockerignore
+node_modules
+npm-debug.log
+README.md
+.next
