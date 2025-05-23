@@ -62,7 +62,12 @@ interface DataExtractionFormProps {
   onExtract: () => void
   isExtracting: boolean
   fieldGroups: FieldGroupDTO[]
-  onSaveFieldGroup: (fieldGroup: Partial<FieldGroupDTO>) => void
+  onSaveFieldGroup: (fieldGroup: {
+    id?: string
+    name: string
+    description?: string
+    fields: ExtractionField[]
+  }) => void
 }
 
 export const DataExtractionForm = ({
@@ -196,6 +201,7 @@ export const DataExtractionForm = ({
 
     // Save the configuration
     onSaveFieldGroup({
+      id: activeFieldGroup?.id,
       name: fieldGroupName.trim(),
       description: fieldGroupDescription.trim(),
       fields: [...fields],

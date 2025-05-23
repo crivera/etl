@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { Badge } from '@/app/components/ui/badge'
-import type { TemplateDTO } from '@/lib/consts'
+import type { TemplateDTO, ExtractionField } from '@/lib/consts'
 
 interface TemplatePreviewProps {
   template: TemplateDTO
@@ -74,7 +74,7 @@ export const TemplatePreview = ({ template, onBack }: TemplatePreviewProps) => {
     }
   }
 
-  const getFieldComponent = (field: any) => {
+  const getFieldComponent = (field: ExtractionField) => {
     switch (field.type) {
       case 'text':
         return <Input placeholder={`Enter ${field.label.toLowerCase()}`} />
@@ -97,18 +97,6 @@ export const TemplatePreview = ({ template, onBack }: TemplatePreviewProps) => {
               className="pl-7"
               placeholder="0.00"
             />
-          </div>
-        )
-      case 'percentage':
-        return (
-          <div className="relative">
-            <Input
-              type="number"
-              step="0.01"
-              className="pr-7"
-              placeholder="0.00"
-            />
-            <span className="absolute right-3 top-2.5">%</span>
           </div>
         )
       case 'email':

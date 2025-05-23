@@ -17,7 +17,7 @@ const BUCKET_NAME = `templates-${env.NODE_ENV}`
  * @param id - The id of the template
  */
 export const deleteTemplate = authClient
-  .inputSchema(z.string())
+  .schema(z.string())
   .action(async ({ ctx, parsedInput }) => {
     const id = parsedInput
 
@@ -58,7 +58,7 @@ export const getTamplates = authClient.action(async ({ ctx }) => {
  * @param template - The template to create
  */
 export const createTemplate = authClient
-  .inputSchema(
+  .schema(
     z.object({
       name: z.string(),
       description: z.string().optional(),
@@ -83,7 +83,7 @@ export const createTemplate = authClient
  * @param id - The id of the template
  */
 export const getTemplate = authClient
-  .inputSchema(z.string())
+  .schema(z.string())
   .action(async ({ ctx, parsedInput }) => {
     const id = parsedInput
 

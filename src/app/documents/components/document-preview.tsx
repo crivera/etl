@@ -47,11 +47,13 @@ import { toast } from 'sonner'
 interface DocumentPreviewProps {
   document: DocumentItem
   onClose: () => void
+  openExtractionSidebar: (document: DocumentItem[]) => void
 }
 
 export const DocumentPreview = ({
   document,
   onClose,
+  openExtractionSidebar,
 }: DocumentPreviewProps) => {
   const [documentUrl, setDocumentUrl] = useState<string | null>(null)
   const [extractedData, setExtractedData] = useState<ExtractedDataDTO[]>([])
@@ -234,9 +236,18 @@ export const DocumentPreview = ({
     <div className="h-full flex flex-col">
       <div className="p-4 border-b flex justify-between items-center">
         <h2 className="text-lg font-semibold">Document Preview</h2>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => openExtractionSidebar([document])}
+          >
+            Extract Data
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       <div className="p-4 border-b">

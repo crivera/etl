@@ -15,7 +15,12 @@ interface ExtractionSidebarProps {
   onExtract: () => void
   isExtracting: boolean
   fieldGroups: FieldGroupDTO[]
-  onSaveFieldGroup: (fieldGroup: Partial<FieldGroupDTO>) => void
+  onSaveFieldGroup: (fieldGroup: {
+    id?: string
+    name: string
+    description?: string
+    fields: ExtractionField[]
+  }) => void
 }
 
 export const ExtractionSidebar = ({

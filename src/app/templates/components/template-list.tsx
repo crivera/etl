@@ -287,8 +287,8 @@ export const TemplateList = ({
           <DialogHeader>
             <DialogTitle>Create New Template</DialogTitle>
             <DialogDescription>
-              Create a new template for document generation. You'll be able to
-              add fields and upload a template file in the next step.
+              Create a new template for document generation. You&apos;ll be able
+              to add fields and upload a template file in the next step.
             </DialogDescription>
           </DialogHeader>
 

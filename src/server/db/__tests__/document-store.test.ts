@@ -52,7 +52,6 @@ describe('documentStore', () => {
       status: DocumentStatus.COMPLETED,
       createdAt: new Date('2024-01-01T10:00:00Z'),
       updatedAt: new Date('2024-01-01T10:00:00Z'),
-      metadata: {},
       itemType: ItemType.FILE,
       parentId: null,
     },
@@ -66,7 +65,6 @@ describe('documentStore', () => {
       status: DocumentStatus.EXTRACTING,
       createdAt: new Date('2024-01-02T10:00:00Z'),
       updatedAt: new Date('2024-01-02T10:00:00Z'),
-      metadata: {},
       itemType: ItemType.FILE,
       parentId: null,
     },
@@ -81,7 +79,6 @@ describe('documentStore', () => {
       status: null, // Folders have null status
       createdAt: new Date('2024-01-03T10:00:00Z'),
       updatedAt: new Date('2024-01-03T10:00:00Z'),
-      metadata: {},
       itemType: ItemType.FOLDER,
       parentId: null,
     },
@@ -96,7 +93,6 @@ describe('documentStore', () => {
       status: DocumentStatus.UPLOADED,
       createdAt: new Date('2024-01-04T10:00:00Z'),
       updatedAt: new Date('2024-01-04T10:00:00Z'),
-      metadata: {},
       itemType: ItemType.FILE,
       parentId: rootFolderUser1Id,
     },
@@ -111,7 +107,6 @@ describe('documentStore', () => {
       status: null,
       createdAt: new Date('2024-01-05T10:00:00Z'),
       updatedAt: new Date('2024-01-05T10:00:00Z'),
-      metadata: {},
       itemType: ItemType.FOLDER,
       parentId: rootFolderUser1Id,
     },
@@ -126,7 +121,6 @@ describe('documentStore', () => {
       status: DocumentStatus.COMPLETED,
       createdAt: new Date('2024-01-06T10:00:00Z'),
       updatedAt: new Date('2024-01-06T10:00:00Z'),
-      metadata: {},
       itemType: ItemType.FILE,
       parentId: subFolderUser1Id,
     },
@@ -141,7 +135,6 @@ describe('documentStore', () => {
       status: null,
       createdAt: new Date('2024-01-07T10:00:00Z'),
       updatedAt: new Date('2024-01-07T10:00:00Z'),
-      metadata: {},
       itemType: ItemType.FOLDER,
       parentId: null,
     },
@@ -156,7 +149,6 @@ describe('documentStore', () => {
       status: DocumentStatus.COMPLETED,
       createdAt: new Date('2024-01-08T10:00:00Z'),
       updatedAt: new Date('2024-01-08T10:00:00Z'),
-      metadata: {},
       itemType: ItemType.FILE,
       parentId: null,
     },
@@ -171,7 +163,6 @@ describe('documentStore', () => {
       status: DocumentStatus.FAILED,
       createdAt: new Date('2023-12-31T10:00:00Z'), // Older date
       updatedAt: new Date('2023-12-31T10:00:00Z'),
-      metadata: {},
       itemType: ItemType.FILE,
       parentId: null,
     },
@@ -186,7 +177,6 @@ describe('documentStore', () => {
       status: DocumentStatus.COMPLETED,
       createdAt: new Date('2024-01-04T11:00:00Z'), // Newer than Nested File 1
       updatedAt: new Date('2024-01-04T11:00:00Z'),
-      metadata: {},
       itemType: ItemType.FILE,
       parentId: rootFolderUser1Id,
     },
@@ -200,7 +190,6 @@ describe('documentStore', () => {
       status: DocumentStatus.COMPLETED,
       createdAt: new Date('2024-01-03T12:00:00Z'), // Older than others in this folder
       updatedAt: new Date('2024-01-03T12:00:00Z'),
-      metadata: {},
       itemType: ItemType.FILE,
       parentId: rootFolderUser1Id,
     },
@@ -214,7 +203,6 @@ describe('documentStore', () => {
       status: null,
       createdAt: new Date('2024-01-05T12:00:00Z'), // Newer than SubFolder X
       updatedAt: new Date('2024-01-05T12:00:00Z'),
-      metadata: {},
       itemType: ItemType.FOLDER,
       parentId: rootFolderUser1Id,
     },
@@ -534,7 +522,6 @@ describe('documentStore', () => {
         type: 'text/plain',
         size: 256,
         status: DocumentStatus.COMPLETED,
-        metadata: {},
         parentId: rootFolderUser1Id, // Target the existing folder
       }
 
@@ -559,7 +546,6 @@ describe('documentStore', () => {
         type: 'application/pdf',
         size: 512,
         status: DocumentStatus.UPLOADED,
-        metadata: {},
         parentId: null,
       }
       // The Omit<DocumentInsert, 'itemType'> part is handled by the function signature
@@ -576,7 +562,6 @@ describe('documentStore', () => {
         type: 'application/pdf',
         size: 512,
         status: DocumentStatus.UPLOADED,
-        metadata: {},
         parentId: 'non-existent-folder-id',
       }
       // The Omit<DocumentInsert, 'itemType'> part is handled by the function signature
@@ -605,7 +590,6 @@ describe('documentStore', () => {
         type: 'folder',
         size: 0,
         status: null,
-        metadata: {}, // Assuming default metadata is an empty object
         extractedText: null, // Folders should have null extractedText
       })
       // Dynamic fields
@@ -635,7 +619,6 @@ describe('documentStore', () => {
         type: 'folder',
         size: 0,
         status: null,
-        metadata: {}, // Assuming default metadata is an empty object
         extractedText: null, // Folders should have null extractedText
       })
       // Dynamic fields

@@ -1,4 +1,3 @@
-import { fileTypeEnum } from './../server/db/schema'
 import { z } from 'zod'
 
 export enum Role {
@@ -98,7 +97,7 @@ export interface GetDocumentsDTO {
 export interface FieldGroupDTO {
   id: string
   name: string
-  description: string
+  description?: string
   fields: ExtractionField[]
   userId: string | null
 }

@@ -180,12 +180,21 @@ export const DocumentExtractor = ({
     }
   }
 
-  const openExtractionSidebar = () => {
+  const openExtractionSidebar = (documents: DocumentItem[]) => {
+    handleSelectAll(false)
+    documents.forEach((doc) => {
+      handleDocumentSelection(doc.id, true)
+    })
     setSidebarMode('extract')
     setSidebarOpen(true)
   }
 
-  const handleSaveFieldGroup = (fieldGroup: Partial<FieldGroupDTO>) => {
+  const handleSaveFieldGroup = (fieldGroup: {
+    id?: string
+    name: string
+    description?: string
+    fields: ExtractionField[]
+  }) => {
     if (fieldGroup.id) {
       updateFieldGroupAction({
         id: fieldGroup.id,
@@ -194,13 +203,11 @@ export const DocumentExtractor = ({
         fields: fieldGroup.fields,
       })
     } else {
-      if (fieldGroup.name && fieldGroup.description && fieldGroup.fields) {
-        createFieldGroupAction({
-          name: fieldGroup.name,
-          description: fieldGroup.description,
-          fields: fieldGroup.fields,
-        })
-      }
+      createFieldGroupAction({
+        name: fieldGroup.name,
+        description: fieldGroup.description,
+        fields: fieldGroup.fields,
+      })
     }
   }
 
@@ -245,7 +252,7 @@ export const DocumentExtractor = ({
             onRemove={handleRemoveDocument}
             isUploading={isUploading}
             isCreatingFolder={isCreatingFolder}
-            onOpenSideBar={openExtractionSidebar}
+            onOpenSideBar={() => openExtractionSidebar(selectedDocuments)}
             onNavigateToFolder={handleNavigateToFolder}
             onDocumentClick={handleDocumentClick}
           />
@@ -273,6 +280,7 @@ export const DocumentExtractor = ({
               <DocumentPreview
                 document={previewDocument}
                 onClose={handleCloseSidebar}
+                openExtractionSidebar={openExtractionSidebar}
               />
             </div>
           )

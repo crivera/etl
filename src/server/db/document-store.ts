@@ -7,13 +7,7 @@ import {
 } from '@/lib/consts'
 import { and, asc, desc, eq, inArray, SQL, sql } from 'drizzle-orm'
 import { db } from '.'
-import {
-  DocumentExtractionInsert,
-  documentExtractions,
-  documents,
-  type DocumentInsert,
-  type DocumentSelect,
-} from './schema'
+import { documents, type DocumentInsert, type DocumentSelect } from './schema'
 
 interface SortConfig {
   field: DocumentSortField

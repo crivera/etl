@@ -1,4 +1,4 @@
-import { extractDocumentData } from '@/server/routes/document-action'
+import { extractDocumentData } from '@/server/routes/extracted-data-action'
 import { ExtractDocumentSchema } from '@/lib/consts'
 import { NextResponse } from 'next/server'
 

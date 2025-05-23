@@ -111,6 +111,9 @@ function createExtractionSchema(fields: ExtractionField[]) {
   for (const field of fields) {
     switch (field.type) {
       case 'text':
+      case 'phone':
+      case 'email':
+      case 'address':
         schemaObject[field.id] = z.string().optional()
         break
       case 'number':
@@ -118,15 +121,6 @@ function createExtractionSchema(fields: ExtractionField[]) {
         break
       case 'date':
         schemaObject[field.id] = z.string().datetime().optional()
-        break
-      case 'email':
-        schemaObject[field.id] = z.string().email().optional()
-        break
-      case 'phone':
-        schemaObject[field.id] = z.string().optional()
-        break
-      case 'address':
-        schemaObject[field.id] = z.string().optional()
         break
       case 'list':
         schemaObject[field.id] = z.array(z.string()).optional()

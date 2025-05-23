@@ -52,7 +52,6 @@ import {
   GripVertical,
   Plus,
   Save,
-  Trash2,
   Upload,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
