@@ -7,86 +7,73 @@ import {
   CardHeader,
   CardTitle,
 } from '@/app/components/ui/card'
+import { getFileTypeBadge } from '@/app/components/ui/common/file-badge'
+import { getFileIcon } from '@/app/components/ui/common/file-icon'
 import { Input } from '@/app/components/ui/input'
 import { Label } from '@/app/components/ui/label'
 import { Textarea } from '@/app/components/ui/textarea'
-import {
-  ArrowLeft,
-  FileText,
-  FileSpreadsheet,
-  FileIcon as FilePdf,
-  Download,
-} from 'lucide-react'
+import type { ExtractionField, TemplateDTO } from '@/lib/consts'
+import { generateDocument } from '@/server/routes/template-action'
 import { format } from 'date-fns'
-import { Badge } from '@/app/components/ui/badge'
-import type { TemplateDTO, ExtractionField } from '@/lib/consts'
+import { Download, Loader2 } from 'lucide-react'
+import { useAction } from 'next-safe-action/hooks'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import * as FileSaver from 'file-saver'
 
 interface TemplatePreviewProps {
   template: TemplateDTO
-  onBack: () => void
 }
 
-export const TemplatePreview = ({ template, onBack }: TemplatePreviewProps) => {
-  const getFileIcon = () => {
-    switch (template.fileType) {
-      case 'docx':
-        return <FileText className="h-16 w-16 text-blue-500" />
-      case 'xlsx':
-        return <FileSpreadsheet className="h-16 w-16 text-green-500" />
-      case 'pdf':
-        return <FilePdf className="h-16 w-16 text-red-500" />
-      default:
-        return <FileText className="h-16 w-16 text-gray-500" />
-    }
-  }
-
-  const getFileTypeBadge = () => {
-    switch (template.fileType) {
-      case 'docx':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-          >
-            DOCX
-          </Badge>
-        )
-      case 'xlsx':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-          >
-            CSV
-          </Badge>
-        )
-      case 'pdf':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-          >
-            PDF
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">Unknown</Badge>
-    }
-  }
+export const TemplatePreview = ({ template }: TemplatePreviewProps) => {
+  const initialData = template.fields.reduce(
+    (acc, field) => {
+      switch (field.type) {
+        case 'currency':
+        case 'number':
+          acc[field.id] = 0
+          break
+        case 'checkbox':
+          acc[field.id] = false
+          break
+        default:
+          acc[field.id] = ''
+          break
+      }
+      return acc
+    },
+    {} as Record<string, string | number | boolean>,
+  )
+  const [data, setData] =
+    useState<Record<string, string | number | boolean>>(initialData)
 
   const getFieldComponent = (field: ExtractionField) => {
     switch (field.type) {
       case 'text':
-        return <Input placeholder={`Enter ${field.label.toLowerCase()}`} />
+        return (
+          <Input
+            placeholder={`Enter ${field.label.toLowerCase()}`}
+            value={data[field.id] as string}
+            onChange={(e) => setData({ ...data, [field.id]: e.target.value })}
+          />
+        )
       case 'number':
         return (
           <Input
             type="number"
             placeholder={`Enter ${field.label.toLowerCase()}`}
+            value={data[field.id] as number}
+            onChange={(e) => setData({ ...data, [field.id]: e.target.value })}
           />
         )
       case 'date':
-        return <Input type="date" />
+        return (
+          <Input
+            type="date"
+            value={data[field.id] as string}
+            onChange={(e) => setData({ ...data, [field.id]: e.target.value })}
+          />
+        )
       case 'currency':
         return (
           <div className="relative">
@@ -96,33 +83,74 @@ export const TemplatePreview = ({ template, onBack }: TemplatePreviewProps) => {
               step="0.01"
               className="pl-7"
               placeholder="0.00"
+              value={data[field.id] as number}
+              onChange={(e) => setData({ ...data, [field.id]: e.target.value })}
             />
           </div>
         )
       case 'email':
-        return <Input type="email" placeholder="email@example.com" />
+        return (
+          <Input
+            type="email"
+            placeholder="email@example.com"
+            value={data[field.id] as string}
+            onChange={(e) => setData({ ...data, [field.id]: e.target.value })}
+          />
+        )
       case 'phone':
-        return <Input type="tel" placeholder="(123) 456-7890" />
+        return (
+          <Input
+            type="tel"
+            placeholder="(123) 456-7890"
+            value={data[field.id] as string}
+            onChange={(e) => setData({ ...data, [field.id]: e.target.value })}
+          />
+        )
       case 'address':
-        return <Textarea placeholder="Enter address" rows={2} />
+        return (
+          <Textarea
+            placeholder="Enter address"
+            rows={2}
+            value={data[field.id] as string}
+            onChange={(e) => setData({ ...data, [field.id]: e.target.value })}
+          />
+        )
       default:
-        return <Input placeholder={`Enter ${field.label.toLowerCase()}`} />
+        return (
+          <Input
+            placeholder={`Enter ${field.label.toLowerCase()}`}
+            value={data[field.id] as string}
+            onChange={(e) => setData({ ...data, [field.id]: e.target.value })}
+          />
+        )
     }
   }
 
+  const { execute: generateDocumentAction, isExecuting: isGeneratingDocument } =
+    useAction(generateDocument, {
+      onSuccess: ({ data }) => {
+        if (data) {
+          toast.success('Document generated successfully')
+          FileSaver.saveAs(
+            new Blob([data], { type: 'application/octet-stream' }),
+            `${template.name}.${template.fileType.toLowerCase()}`,
+          )
+        }
+      },
+      onError: ({ error }) => {
+        toast.error(error.serverError?.message ?? 'An error occurred')
+      },
+    })
+
+  const handleGenerateDocument = () => {
+    console.log(data)
+    generateDocumentAction({
+      templateId: template.id,
+      data: data,
+    })
+  }
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Templates
-        </Button>
-        <Button>
-          <Download className="h-4 w-4 mr-2" />
-          Generate Document
-        </Button>
-      </div>
-
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-1 space-y-6">
           <Card>
@@ -131,10 +159,10 @@ export const TemplatePreview = ({ template, onBack }: TemplatePreviewProps) => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col items-center justify-center p-6 border rounded-md">
-                {getFileIcon()}
+                {getFileIcon(template.fileType)}
                 <h3 className="mt-4 text-lg font-medium">{template.name}</h3>
                 <div className="mt-2 flex items-center">
-                  {getFileTypeBadge()}
+                  {getFileTypeBadge(template.fileType)}
                   <span className="mx-2 text-muted-foreground">•</span>
                   <span className="text-sm text-muted-foreground">
                     {(template.fileSize / 1024).toFixed(1)} KB
@@ -160,6 +188,20 @@ export const TemplatePreview = ({ template, onBack }: TemplatePreviewProps) => {
                   <span className="text-muted-foreground">Fields:</span>
                   <span className="font-medium">{template.fields.length}</span>
                 </div>
+              </div>
+              <div className="flex items-center justify-center mt-4">
+                <Button
+                  variant="default"
+                  onClick={handleGenerateDocument}
+                  disabled={isGeneratingDocument}
+                >
+                  {isGeneratingDocument ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Generate Document
+                </Button>
               </div>
             </CardContent>
           </Card>

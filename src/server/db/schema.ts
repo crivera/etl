@@ -4,6 +4,7 @@ import {
   FileType,
   ItemType,
   Role,
+  TemplateMetadata,
 } from '@/lib/consts'
 import { createId } from '@paralleldrive/cuid2'
 import { sql } from 'drizzle-orm'
@@ -115,6 +116,7 @@ export const templates = createTable('templates', {
   fileName: text('file_name'),
   type: text('type'),
   size: integer('size'),
+  metadata: jsonb('metadata').$type<TemplateMetadata>().default({}),
 })
 
 export type UserInsert = typeof users.$inferInsert

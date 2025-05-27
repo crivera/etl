@@ -7,20 +7,23 @@ import { useEffect, useRef, useState } from 'react'
 
 interface PDFMeDesignerProps {
   base64Pdf: string
-
+  initialTemplate: Template | null
   onUpdate: (template: Template) => void
 }
 
 export default function PDFMeDesigner({
   base64Pdf,
+  initialTemplate,
   onUpdate,
 }: PDFMeDesignerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const designerRef = useRef<Designer | null>(null)
-  const [template] = useState<Template>({
-    basePdf: base64Pdf,
-    schemas: [],
-  })
+  const [template] = useState<Template>(
+    initialTemplate ?? {
+      basePdf: base64Pdf,
+      schemas: [],
+    },
+  )
 
   useEffect(() => {
     // Only initialize if the container exists and designer hasn't been created yet

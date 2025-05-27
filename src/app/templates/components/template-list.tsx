@@ -1,23 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { Button } from '@/app/components/ui/button'
 import { Card, CardContent } from '@/app/components/ui/card'
-import { Input } from '@/app/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/app/components/ui/table'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu'
+import { getFileTypeBadge } from '@/app/components/ui/common/file-badge'
+import { getFileIcon } from '@/app/components/ui/common/file-icon'
 import {
   Dialog,
   DialogContent,
@@ -26,8 +12,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/app/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/app/components/ui/dropdown-menu'
+import { Input } from '@/app/components/ui/input'
 import { Label } from '@/app/components/ui/label'
-import { Textarea } from '@/app/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -36,20 +28,26 @@ import {
   SelectValue,
 } from '@/app/components/ui/select'
 import {
-  FileText,
-  FileSpreadsheet,
-  FileIcon as FilePdf,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/app/components/ui/table'
+import { Textarea } from '@/app/components/ui/textarea'
+import { FileType, TemplateDTO } from '@/lib/consts'
+import { format } from 'date-fns'
+import {
+  Calendar,
+  Edit,
+  Eye,
   MoreVertical,
   Plus,
   Search,
-  Edit,
-  Eye,
   Trash2,
-  Calendar,
 } from 'lucide-react'
-import { Badge } from '@/app/components/ui/badge'
-import { format } from 'date-fns'
-import { TemplateDTO, FileType } from '@/lib/consts'
+import { useState } from 'react'
 
 interface TemplateListProps {
   templates: TemplateDTO[]
@@ -118,53 +116,6 @@ export const TemplateList = ({
       onDeleteTemplate(templateToDelete.id)
       setTemplateToDelete(null)
       setIsDeleteDialogOpen(false)
-    }
-  }
-
-  const getFileIcon = (fileType: string) => {
-    switch (fileType) {
-      case 'docx':
-        return <FileText className="h-5 w-5 text-blue-500" />
-      case 'xlsx':
-        return <FileSpreadsheet className="h-5 w-5 text-green-500" />
-      case 'pdf':
-        return <FilePdf className="h-5 w-5 text-red-500" />
-      default:
-        return <FileText className="h-5 w-5 text-gray-500" />
-    }
-  }
-
-  const getFileTypeBadge = (fileType: string) => {
-    switch (fileType) {
-      case 'docx':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-          >
-            DOCX
-          </Badge>
-        )
-      case 'xlsx':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-          >
-            CSV
-          </Badge>
-        )
-      case 'pdf':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-          >
-            PDF
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">Unknown</Badge>
     }
   }
 

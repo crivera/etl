@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { TemplateList } from './template-list'
-import type { TemplateDTO } from '@/lib/consts'
+import type { FileType, TemplateDTO } from '@/lib/consts'
 import { useAction } from 'next-safe-action/hooks'
 import { createTemplate, deleteTemplate } from '@/server/routes/template-action'
 import { useRouter } from 'next/navigation'
@@ -21,7 +21,7 @@ export const TemplateManager = ({
       onSuccess: ({ data }) => {
         if (data) {
           setTemplates([...templates, data])
-          router.push(`/templates/edit/${data.id}`)
+          router.push(`/templates/${data.id}/edit`)
         }
       },
       onError: ({ error }) => {
@@ -29,17 +29,17 @@ export const TemplateManager = ({
       },
     })
 
-  const handleCreateTemplate = (
-    template: Omit<TemplateDTO, 'id' | 'dateCreated' | 'dateModified'>,
-  ) => {
+  const handleCreateTemplate = (template: {
+    name: string
+    description: string
+    fileType: FileType
+  }) => {
     createTemplateAction({
       name: template.name,
       description: template.description,
       fileType: template.fileType,
     })
   }
-
-  const handleUpdateTemplate = (updatedTemplate: TemplateDTO) => {}
 
   const { execute: deleteTemplateAction, isExecuting: isDeletingTemplate } =
     useAction(deleteTemplate, {
@@ -57,11 +57,11 @@ export const TemplateManager = ({
   }
 
   const handleEditTemplate = (template: TemplateDTO) => {
-    router.push(`/templates/edit/${template.id}`)
+    router.push(`/templates/${template.id}/edit`)
   }
 
   const handlePreviewTemplate = (template: TemplateDTO) => {
-    router.push(`/templates/preview/${template.id}`)
+    router.push(`/templates/${template.id}/preview`)
   }
 
   return (

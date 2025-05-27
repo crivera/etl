@@ -10,14 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/app/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/app/components/ui/dialog'
+import { getFileIcon } from '@/app/components/ui/common/file-icon'
 import { Input } from '@/app/components/ui/input'
 import { Label } from '@/app/components/ui/label'
 import {
@@ -44,20 +37,14 @@ import {
   getFieldTypeLabel,
   type TemplateDTO,
 } from '@/lib/consts'
-import {
-  AlertCircle,
-  FileIcon as FilePdf,
-  FileSpreadsheet,
-  FileText,
-  GripVertical,
-  Plus,
-  Save,
-  Upload,
-} from 'lucide-react'
+import { updateTemplate } from '@/server/routes/template-action'
+import { Template } from '@pdfme/common'
+import { AlertCircle, GripVertical, Loader2, Save, Upload } from 'lucide-react'
+import { useAction } from 'next-safe-action/hooks'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import PDFMeDesigner from './pdf-designer'
-import { Template } from '@pdfme/common'
 
 interface TemplateEditorProps {
   template: TemplateDTO
@@ -67,14 +54,14 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
   const router = useRouter()
   const [editedTemplate, setEditedTemplate] = useState<TemplateDTO>(template)
 
-  const [isAddFieldDialogOpen, setIsAddFieldDialogOpen] = useState(false)
-  const [newField, setNewField] = useState<Omit<ExtractionField, 'id'>>({
-    label: '',
-    type: ExtractionFieldType.TEXT,
-  })
-  const [fieldError, setFieldError] = useState('')
+  const [base64Pdf, setBase64Pdf] = useState<string | null>(
+    template.metadata?.pdfMe?.basePdf ?? null,
+  )
+  const [file, setFile] = useState<File | null>(null)
+  const [pdfMeMetadata, setPdfMeMetadata] = useState<Template | null>(
+    template.metadata?.pdfMe ?? null,
+  )
 
-  const [base64Pdf, setBase64Pdf] = useState<string | null>(null)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -111,54 +98,34 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
       setBase64Pdf(base64)
     }
     reader.readAsDataURL(file)
+    setFile(file)
   }
 
-  const handleAddField = () => {
-    if (!newField.label.trim()) {
-      setFieldError('Field name is required')
-      return
-    }
-
-    // Create field ID from label (lowercase, replace spaces with underscores)
-    const fieldId = newField.label.trim().toLowerCase().replace(/\s+/g, '_')
-
-    // Check if field with this ID already exists
-    if (editedTemplate.fields.some((field) => field.id === fieldId)) {
-      setFieldError('A field with this name already exists')
-      return
-    }
-
-    const updatedFields = [
-      ...editedTemplate.fields,
-      {
-        id: fieldId,
-        label: newField.label.trim(),
-        type: newField.type,
+  const { execute: updateTemplateAction, isExecuting: isUpdatingTemplate } =
+    useAction(updateTemplate, {
+      onSuccess: ({ data }) => {
+        if (data) {
+          setEditedTemplate(data)
+        }
       },
-    ]
-
-    setEditedTemplate({
-      ...editedTemplate,
-      fields: updatedFields,
+      onError: ({ error }) => {
+        toast.error(error.serverError?.message ?? 'An error occurred')
+      },
     })
-
-    setNewField({
-      label: '',
-      type: ExtractionFieldType.TEXT,
-    })
-    setFieldError('')
-    setIsAddFieldDialogOpen(false)
-  }
-
-  const handleRemoveField = (id: string) => {
-    setEditedTemplate({
-      ...editedTemplate,
-      fields: editedTemplate.fields.filter((field) => field.id !== id),
-    })
-  }
 
   const handleSave = () => {
-    console.log('Template saved:', template)
+    updateTemplateAction({
+      id: editedTemplate.id,
+      name: editedTemplate.name,
+      description: editedTemplate.description,
+      fileType: editedTemplate.fileType,
+      file: file,
+      fields: editedTemplate.fields,
+      metadata: {
+        pdfMe: pdfMeMetadata,
+      },
+    })
+    router.push(`/templates`)
   }
 
   const handleUpdate = (template: Template) => {
@@ -180,27 +147,12 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
         })
       }
     })
+
     setEditedTemplate({
       ...editedTemplate,
       fields: updatedFields,
     })
-  }
-
-  const handleCancel = () => {
-    router.push('/templates')
-  }
-
-  const getFileIcon = () => {
-    switch (editedTemplate.fileType) {
-      case 'docx':
-        return <FileText className="h-12 w-12 text-blue-500" />
-      case 'xlsx':
-        return <FileSpreadsheet className="h-12 w-12 text-green-500" />
-      case 'pdf':
-        return <FilePdf className="h-12 w-12 text-red-500" />
-      default:
-        return <FileText className="h-12 w-12 text-gray-500" />
-    }
+    setPdfMeMetadata(template)
   }
 
   return (
@@ -275,10 +227,6 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Template Fields</CardTitle>
-            <Button onClick={() => setIsAddFieldDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Field
-            </Button>
           </CardHeader>
           <CardContent>
             {editedTemplate.fields.length === 0 ? (
@@ -300,7 +248,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
                     </TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody className="max-h-[400px] overflow-y-auto">
                   {editedTemplate.fields.map((field) => (
                     <TableRow key={field.id}>
                       <TableCell>
@@ -342,16 +290,32 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
 
         <Card className="col-span-2">
           <CardHeader>
-            <CardTitle>Template File</CardTitle>
+            <CardTitle>
+              Template File
+              <div className="flex items-center justify-end">
+                <Button onClick={handleSave} disabled={isUpdatingTemplate}>
+                  {isUpdatingTemplate ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save Template
+                </Button>
+              </div>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {base64Pdf ? (
               <div className="flex p-1 border rounded-md">
-                <PDFMeDesigner base64Pdf={base64Pdf} onUpdate={handleUpdate} />
+                <PDFMeDesigner
+                  base64Pdf={base64Pdf}
+                  initialTemplate={pdfMeMetadata}
+                  onUpdate={handleUpdate}
+                />
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-10 border border-dashed rounded-md">
-                {getFileIcon()}
+                {getFileIcon(editedTemplate.fileType)}
                 <h3 className="mt-4 text-lg font-medium">
                   Upload Template File
                 </h3>
@@ -407,84 +371,6 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
           </CardContent>
         </Card>
       </div>
-
-      <div className="flex items-center justify-end">
-        <Button onClick={handleSave}>
-          <Save className="h-4 w-4 mr-2" />
-          Save Template
-        </Button>
-      </div>
-
-      {/* Add Field Dialog */}
-      <Dialog
-        open={isAddFieldDialogOpen}
-        onOpenChange={setIsAddFieldDialogOpen}
-      >
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add Template Field</DialogTitle>
-            <DialogDescription>
-              Add a field to map extracted data to your template.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="fieldName">Field Name</Label>
-              <Input
-                id="fieldName"
-                value={newField.label}
-                onChange={(e) => {
-                  setNewField({ ...newField, label: e.target.value })
-                  setFieldError('')
-                }}
-                placeholder="Enter field name"
-                className={fieldError ? 'border-red-500' : ''}
-              />
-              {fieldError && (
-                <p className="text-sm text-red-500">{fieldError}</p>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="fieldType">Field Type</Label>
-              <Select
-                value={newField.type}
-                onValueChange={(value) =>
-                  setNewField({
-                    ...newField,
-                    type: value as ExtractionFieldType,
-                  })
-                }
-              >
-                <SelectTrigger id="fieldType">
-                  <SelectValue placeholder="Select field type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="text">Text</SelectItem>
-                  <SelectItem value="number">Number</SelectItem>
-                  <SelectItem value="date">Date</SelectItem>
-                  <SelectItem value="currency">Currency</SelectItem>
-                  <SelectItem value="percentage">Percentage</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="phone">Phone</SelectItem>
-                  <SelectItem value="address">Address</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsAddFieldDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAddField}>Add Field</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

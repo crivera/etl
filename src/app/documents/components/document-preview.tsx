@@ -144,14 +144,18 @@ export const DocumentPreview = ({
   const renderPreviewContent = () => {
     if (!documentUrl) {
       return (
-        <div className="flex flex-col items-center justify-center h-full">
-          <div className="bg-card p-8 rounded-lg border shadow-sm flex flex-col items-center max-w-md w-full">
+        <div className="flex flex-col h-full">
+          <div className="p-4 border-b flex items-center gap-4">
             {getFileIcon()}
-            <h3 className="text-xl font-semibold mt-4">{document.name}</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {(document.size / 1024).toFixed(1)} KB • Added{' '}
-              {document.createdAt.toLocaleDateString()}
-            </p>
+            <div>
+              <h3 className="text-xl font-semibold">{document.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                {(document.size / 1024).toFixed(1)} KB • Added{' '}
+                {document.createdAt.toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 flex items-center justify-center">
             <div className="mt-6 animate-pulse">
               <p className="text-sm text-muted-foreground">
                 Loading preview...

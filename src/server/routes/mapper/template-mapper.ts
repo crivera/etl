@@ -1,5 +1,5 @@
+import { TemplateDTO } from '@/lib/consts'
 import { TemplateSelect } from '@/server/db/schema'
-import { TemplateDTO, FileType } from '@/lib/consts'
 
 /**
  * Map a template to a template DTO
@@ -12,11 +12,12 @@ export const mapTemplateToTemplateDTO = (
   return {
     id: template.id,
     name: template.name,
-    fileType: template.fileType as FileType,
+    fileType: template.fileType,
     dateModified: template.updatedAt,
     fields: template.fields,
     fileName: template.fileName || '',
     fileSize: template.size || 0,
+    metadata: template.metadata || {},
   }
 }
 

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z, ZodAny } from 'zod'
 
 export enum Role {
   ANNONYMOUS = 0,
@@ -39,6 +39,12 @@ export const ExtractionFieldSchema = z.object({
   type: z.nativeEnum(ExtractionFieldType),
   description: z.string().optional(),
 })
+
+export const TemplateMetadataSchema = z.object({
+  pdfMe: z.any().optional(),
+})
+
+export type TemplateMetadata = z.infer<typeof TemplateMetadataSchema>
 
 export type ExtractionField = z.infer<typeof ExtractionFieldSchema>
 
@@ -145,6 +151,7 @@ export interface TemplateDTO {
   fields: ExtractionField[]
   fileName: string
   fileSize: number
+  metadata: TemplateMetadata | null
 }
 
 export const fieldTypes: {
