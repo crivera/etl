@@ -209,9 +209,20 @@ export const generateDocument = authClient
     }
 
     if (template.fileType === 'pdf' && template.metadata?.pdfMe) {
+      const mappedData = Object.entries(data).reduce(
+        (acc, [key, value]) => {
+          const field = template.fields.find((field) => field.id === key)
+          if (field) {
+            acc[field.label] = value
+          }
+          return acc
+        },
+        {} as Record<string, unknown>,
+      )
+
       const pdf = await generate({
         template: template.metadata?.pdfMe,
-        inputs: [data],
+        inputs: [mappedData],
         plugins: {
           Text: text,
           Date: date,

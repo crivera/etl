@@ -305,7 +305,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {base64Pdf ? (
+            {base64Pdf && pdfMeMetadata ? (
               <div className="flex p-1 border rounded-md">
                 <PDFMeDesigner
                   base64Pdf={base64Pdf}

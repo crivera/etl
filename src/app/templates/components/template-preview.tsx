@@ -19,7 +19,8 @@ import { Download, Loader2 } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import * as FileSaver from 'file-saver'
+import FileSaver from 'file-saver'
+import { useRouter } from 'next/navigation'
 
 interface TemplatePreviewProps {
   template: TemplateDTO
@@ -46,6 +47,8 @@ export const TemplatePreview = ({ template }: TemplatePreviewProps) => {
   )
   const [data, setData] =
     useState<Record<string, string | number | boolean>>(initialData)
+
+  const router = useRouter()
 
   const getFieldComponent = (field: ExtractionField) => {
     switch (field.type) {
@@ -143,7 +146,6 @@ export const TemplatePreview = ({ template }: TemplatePreviewProps) => {
     })
 
   const handleGenerateDocument = () => {
-    console.log(data)
     generateDocumentAction({
       templateId: template.id,
       data: data,
@@ -189,7 +191,13 @@ export const TemplatePreview = ({ template }: TemplatePreviewProps) => {
                   <span className="font-medium">{template.fields.length}</span>
                 </div>
               </div>
-              <div className="flex items-center justify-center mt-4">
+              <div className="flex items-center justify-between mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/templates/${template.id}/edit`)}
+                >
+                  Edit Template
+                </Button>
                 <Button
                   variant="default"
                   onClick={handleGenerateDocument}
