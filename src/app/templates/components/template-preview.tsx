@@ -20,7 +20,7 @@ import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import FileSaver from 'file-saver'
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'nextjs-toploader/app'
 
 interface TemplatePreviewProps {
   template: TemplateDTO

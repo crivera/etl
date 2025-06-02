@@ -41,10 +41,13 @@ import { updateTemplate } from '@/server/routes/template-action'
 import { Template } from '@pdfme/common'
 import { AlertCircle, GripVertical, Loader2, Save, Upload } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'nextjs-toploader/app'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PDFMeDesigner from './pdf-designer'
+import PizZip from 'pizzip'
+import InspectModule from 'docxtemplater/js/inspect-module'
+import Docxtemplater from 'docxtemplater'
 
 interface TemplateEditorProps {
   template: TemplateDTO
@@ -54,7 +57,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
   const router = useRouter()
   const [editedTemplate, setEditedTemplate] = useState<TemplateDTO>(template)
 
-  const [base64Pdf, setBase64Pdf] = useState<string | null>(
+  const [base64String, setBase64String] = useState<string | null>(
     template.metadata?.pdfMe?.basePdf ?? null,
   )
   const [file, setFile] = useState<File | null>(null)
@@ -62,7 +65,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
     template.metadata?.pdfMe ?? null,
   )
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -95,9 +98,41 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
     const reader = new FileReader()
     reader.onload = (event) => {
       const base64 = event.target?.result as string
-      setBase64Pdf(base64)
+      setBase64String(base64)
     }
     reader.readAsDataURL(file)
+
+    if (editedTemplate.fileType === 'docx') {
+      const zip = new PizZip(await file.arrayBuffer())
+      const iModule = new InspectModule()
+      const _doc = new Docxtemplater(zip, {
+        modules: [iModule],
+        paragraphLoop: true,
+        linebreaks: true,
+      })
+      const tags = iModule.getAllStructuredTags()
+      console.log(tags)
+      const updatedFields = new Set<ExtractionField>()
+      for (const tag of tags) {
+        let type = ExtractionFieldType.TEXT
+        let value = tag.value
+        if (tag.module === 'loop') {
+          type = ExtractionFieldType.LIST
+          value = tag.value.split('.')[0]
+        }
+        const fieldId = value.trim().toLowerCase().replace(/\s+/g, '_')
+        updatedFields.add({
+          id: fieldId,
+          label: value,
+          type,
+        })
+      }
+
+      setEditedTemplate({
+        ...editedTemplate,
+        fields: Array.from(updatedFields),
+      })
+    }
     setFile(file)
   }
 
@@ -211,7 +246,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="docx">Word Document (DOCX)</SelectItem>
-                  <SelectItem value="xlsx">CSV File</SelectItem>
+                  {/* <SelectItem value="xlsx">CSV File</SelectItem> */}
                   <SelectItem value="pdf">PDF Document</SelectItem>
                 </SelectContent>
               </Select>
@@ -240,20 +275,13 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
                     <TableHead>Field Name</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead className="w-[80px] text-right">
-                      Actions
-                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="max-h-[400px] overflow-y-auto">
                   {editedTemplate.fields.map((field) => (
                     <TableRow key={field.id}>
-                      <TableCell>
-                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-                      </TableCell>
                       <TableCell className="font-medium">
                         <div>
                           <div>{field.label}</div>
@@ -268,17 +296,6 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
                         >
                           {getFieldTypeLabel(field.type)}
                         </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {/* <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveField(field.id)}
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Remove</span>
-                        </Button> */}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -305,13 +322,42 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {base64Pdf && pdfMeMetadata ? (
+            {base64String || editedTemplate.fileName ? (
               <div className="flex p-1 border rounded-md">
-                <PDFMeDesigner
-                  base64Pdf={base64Pdf}
-                  initialTemplate={pdfMeMetadata}
-                  onUpdate={handleUpdate}
-                />
+                {pdfMeMetadata && (
+                  <PDFMeDesigner
+                    base64Pdf={base64String!}
+                    initialTemplate={pdfMeMetadata}
+                    onUpdate={handleUpdate}
+                  />
+                )}
+                {editedTemplate.fileType === 'docx' && (
+                  <div className="flex items-center p-6 w-full">
+                    {getFileIcon(editedTemplate.fileType)}
+                    <div className="ml-6">
+                      <h3 className="text-lg font-medium">
+                        {file?.name || editedTemplate.fileName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {(
+                          (file?.size || editedTemplate.fileSize) / 1024
+                        ).toFixed(1)}{' '}
+                        KB
+                      </p>
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            document.getElementById('file-upload')?.click()
+                          }
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Replace File
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-10 border border-dashed rounded-md">
@@ -353,8 +399,17 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Word templates should use merge fields with the same names as
-                  your defined template fields.
+                  <code>
+                    Placeholder Tags: {'{'}first_name{'}'}; These tags are used
+                    to insert data values (text) directly into the template.{' '}
+                    <br />
+                    Loop Tags: {'{#'}loop{'}'} and {'{/'}loop{'}'}; These tags
+                    define a loop for repeating sections based on array data.{' '}
+                    <br />
+                    Condition Tags: {'{#'}condition{'}'} and {'{/'}condition
+                    {'}'}; These tags are used to conditionally include or
+                    exclude content based on boolean values.
+                  </code>
                 </AlertDescription>
               </Alert>
             )}

@@ -5,7 +5,7 @@ import { TemplateList } from './template-list'
 import type { FileType, TemplateDTO } from '@/lib/consts'
 import { useAction } from 'next-safe-action/hooks'
 import { createTemplate, deleteTemplate } from '@/server/routes/template-action'
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'nextjs-toploader/app'
 import { toast } from 'sonner'
 
 export const TemplateManager = ({

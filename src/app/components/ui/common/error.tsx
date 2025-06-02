@@ -3,7 +3,7 @@
 import { Bug } from 'lucide-react'
 import { useEffect, useTransition } from 'react'
 
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'nextjs-toploader/app'
 import type { TZSAError } from 'zsa'
 import { Button } from '../button'
 import type { ZodAny } from 'zod'
