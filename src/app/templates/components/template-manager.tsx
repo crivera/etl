@@ -16,18 +16,17 @@ export const TemplateManager = ({
   const router = useRouter()
   const [templates, setTemplates] = useState<TemplateDTO[]>(initialTemplates)
 
-  const { execute: createTemplateAction, isExecuting: isCreatingTemplate } =
-    useAction(createTemplate, {
-      onSuccess: ({ data }) => {
-        if (data) {
-          setTemplates([...templates, data])
-          router.push(`/templates/${data.id}/edit`)
-        }
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError?.message ?? 'An error occurred')
-      },
-    })
+  const { execute: createTemplateAction } = useAction(createTemplate, {
+    onSuccess: ({ data }) => {
+      if (data) {
+        setTemplates([...templates, data])
+        router.push(`/templates/${data.id}/edit`)
+      }
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError?.message ?? 'An error occurred')
+    },
+  })
 
   const handleCreateTemplate = (template: {
     name: string
@@ -41,15 +40,14 @@ export const TemplateManager = ({
     })
   }
 
-  const { execute: deleteTemplateAction, isExecuting: isDeletingTemplate } =
-    useAction(deleteTemplate, {
-      onSuccess: () => {
-        toast.success('Template deleted successfully')
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError?.message ?? 'An error occurred')
-      },
-    })
+  const { execute: deleteTemplateAction } = useAction(deleteTemplate, {
+    onSuccess: () => {
+      toast.success('Template deleted successfully')
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError?.message ?? 'An error occurred')
+    },
+  })
 
   const handleDeleteTemplate = (id: string) => {
     deleteTemplateAction(id)

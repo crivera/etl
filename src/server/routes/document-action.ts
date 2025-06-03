@@ -20,6 +20,7 @@ import {
   mapDocumentToDocumentItem,
 } from './mapper/document-mapper'
 import { ActionError, authClient, systemClient } from './safe-action'
+
 const sortFieldSchema = z.enum(['createdAt', 'updatedAt', 'name', 'status'])
 const BUCKET_NAME = `documents-${env.NODE_ENV}`
 
@@ -33,7 +34,7 @@ const cursorSchema = z.object({
  * @param id - The id of the document
  */
 export const deleteDocument = authClient
-  .schema(z.string())
+  .inputSchema(z.string())
   .action(async ({ ctx, parsedInput }) => {
     const id = parsedInput
 
@@ -69,7 +70,7 @@ export const deleteDocument = authClient
  * @param filters - The filters to apply to the documents
  */
 export const getDocuments = authClient
-  .schema(
+  .inputSchema(
     z.object({
       cursor: cursorSchema.optional(),
       limit: z.number().min(1).max(100).default(10),
@@ -112,10 +113,10 @@ export const getDocuments = authClient
  * @returns The uploaded image
  */
 export const uploadFiles = authClient
-  .schema(
+  .inputSchema(
     zfd.formData({
       files: zfd.file().array(),
-      parentId: zfd.text(z.string().optional()),
+      parentId: zfd.text().optional(),
     }),
   )
   .action(async ({ ctx, parsedInput }) => {
@@ -168,7 +169,7 @@ export const uploadFiles = authClient
  * @param parentId - The id of the parent folder (optional, for root level)
  */
 export const createFolder = authClient
-  .schema(
+  .inputSchema(
     z.object({
       name: z.string().min(3, 'Folder name cannot be empty'),
       parentId: z.string().nullable().optional(),
@@ -195,7 +196,7 @@ export const createFolder = authClient
  * @param documentId - The id of the document
  */
 export const ocrDocument = systemClient
-  .schema(OcrDocumentSchema)
+  .inputSchema(OcrDocumentSchema)
   .action(async ({ ctx, parsedInput }) => {
     const { documentId } = parsedInput
 
@@ -247,7 +248,7 @@ export const ocrDocument = systemClient
  * @param folderId - The ID of the folder to get the path for. If null or undefined, returns path for root.
  */
 export const getFolderPath = authClient
-  .schema(
+  .inputSchema(
     z.object({
       folderId: z.string().optional(),
     }),
@@ -290,7 +291,7 @@ export const getFolderPath = authClient
  * @param id - The id of the document
  */
 export const getDocumentUrl = authClient
-  .schema(z.string())
+  .inputSchema(z.string())
   .action(async ({ ctx, parsedInput }) => {
     const id = parsedInput
 

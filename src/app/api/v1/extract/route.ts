@@ -1,5 +1,5 @@
-import { extractDocumentData } from '@/server/routes/extracted-data-action'
 import { ExtractDocumentSchema } from '@/lib/consts'
+import { extractDocumentData } from '@/server/routes/extracted-data-action'
 import { NextResponse } from 'next/server'
 
 /**
@@ -26,6 +26,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(result.data)
   } catch (error) {
+    console.error(error)
     return NextResponse.json(
       { success: false, error: 'Invalid request body' },
       { status: 400 },

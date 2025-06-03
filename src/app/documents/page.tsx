@@ -32,35 +32,36 @@ export default async function Documents({ searchParams }: DocumentsPageProps) {
     status: status,
   }
 
-  const [result, folderPathResult, fieldGroups] = await Promise.all([
-    getDocuments({
-      limit: Number(limit),
-      filters: Object.keys(filters).length > 0 ? filters : undefined,
-      sort: {
-        field: sortBy,
-        direction: sortDirection,
-      },
-      parentId,
-    }),
-    getFolderPath({ folderId: parentId }),
-    getFieldGroupsForUser(),
-  ])
+  const [documentsResult, folderPathResult, fieldGroupsResult] =
+    await Promise.all([
+      getDocuments({
+        limit: Number(limit),
+        filters: Object.keys(filters).length > 0 ? filters : undefined,
+        sort: {
+          field: sortBy,
+          direction: sortDirection,
+        },
+        parentId,
+      }),
+      getFolderPath({ folderId: parentId }),
+      getFieldGroupsForUser(),
+    ])
 
-  if (result?.serverError || !result?.data) {
-    return <GenericError error={result?.serverError} />
+  if (documentsResult.serverError || !documentsResult.data) {
+    return <GenericError error={documentsResult.serverError} />
   }
 
-  if (folderPathResult?.serverError || !folderPathResult?.data) {
+  if (folderPathResult.serverError || !folderPathResult.data) {
     // Handle error fetching folder path, maybe show a default breadcrumb or log error
     console.error(
       'Error fetching folder path:',
-      folderPathResult?.serverError?.message,
+      folderPathResult.serverError?.message,
     )
     // For now, we'll proceed with empty breadcrumbs or a default
   }
 
-  if (fieldGroups?.serverError || !fieldGroups?.data) {
-    return <GenericError error={fieldGroups?.serverError} />
+  if (fieldGroupsResult.serverError || !fieldGroupsResult.data) {
+    return <GenericError error={fieldGroupsResult.serverError} />
   }
 
   const breadcrumbData = folderPathResult?.data || []
@@ -68,10 +69,10 @@ export default async function Documents({ searchParams }: DocumentsPageProps) {
   return (
     <main className="container mx-auto py-6 px-4 max-w-full">
       <DocumentExtractor
-        initalDocuments={result.data}
+        initalDocuments={documentsResult.data}
         breadcrumbData={breadcrumbData}
         currentFolderId={parentId}
-        initalFieldGroups={fieldGroups.data}
+        initalFieldGroups={fieldGroupsResult.data}
       />
     </main>
   )

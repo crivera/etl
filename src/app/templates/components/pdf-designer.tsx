@@ -57,7 +57,7 @@ export default function PDFMeDesigner({
         }
       }
     }
-  }, [])
+  }, [onUpdate, template])
 
   return (
     <div className="w-full h-full">

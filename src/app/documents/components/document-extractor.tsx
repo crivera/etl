@@ -101,28 +101,26 @@ export const DocumentExtractor = ({
       },
     })
 
-  const { execute: createFieldGroupAction, isExecuting: isCreatingFieldGroup } =
-    useAction(createFieldGroup, {
-      onSuccess: ({ data }) => {
-        toast.success('Field group created successfully')
-        if (data) {
-          setFieldGroups([...fieldGroups, data])
-        }
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError?.message ?? 'An error occurred')
-      },
-    })
+  const { execute: createFieldGroupAction } = useAction(createFieldGroup, {
+    onSuccess: ({ data }) => {
+      toast.success('Field group created successfully')
+      if (data) {
+        setFieldGroups([...fieldGroups, data])
+      }
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError?.message ?? 'An error occurred')
+    },
+  })
 
-  const { execute: updateFieldGroupAction, isExecuting: isUpdatingFieldGroup } =
-    useAction(updateFieldGroup, {
-      onSuccess: ({}) => {
-        toast.success('Field group updated successfully')
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError?.message ?? 'An error occurred')
-      },
-    })
+  const { execute: updateFieldGroupAction } = useAction(updateFieldGroup, {
+    onSuccess: ({}) => {
+      toast.success('Field group updated successfully')
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError?.message ?? 'An error occurred')
+    },
+  })
 
   const handleCreateFolder = (name: string) => {
     createFolderAction({

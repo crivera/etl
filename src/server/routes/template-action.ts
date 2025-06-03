@@ -24,7 +24,7 @@ const BUCKET_NAME = `templates-${env.NODE_ENV}`
  * @param id - The id of the template
  */
 export const deleteTemplate = authClient
-  .schema(z.string())
+  .inputSchema(z.string())
   .action(async ({ ctx, parsedInput }) => {
     const id = parsedInput
 
@@ -55,17 +55,21 @@ export const deleteTemplate = authClient
 /**
  * Get all templates for a user
  */
-export const getTamplates = authClient.action(async ({ ctx }) => {
-  const templates = await templateStore.getAllTemplatesForUser(ctx.dbUser.id)
-  return mapTemplatesToTemplateDTOs(templates)
-})
+export const getTamplates = authClient
+  .inputSchema(z.object({ text: z.string().optional() }))
+  .action(async ({ ctx, parsedInput }) => {
+    const { text } = parsedInput
+    console.log('text', text)
+    const templates = await templateStore.getAllTemplatesForUser(ctx.dbUser.id)
+    return mapTemplatesToTemplateDTOs(templates)
+  })
 
 /**
  * Create a new template
  * @param template - The template to create
  */
 export const createTemplate = authClient
-  .schema(
+  .inputSchema(
     z.object({
       name: z.string(),
       description: z.string().optional(),
@@ -90,7 +94,7 @@ export const createTemplate = authClient
  * @param id - The id of the template
  */
 export const getTemplate = authClient
-  .schema(z.string())
+  .inputSchema(z.string())
   .action(async ({ ctx, parsedInput }) => {
     const id = parsedInput
 
@@ -118,7 +122,7 @@ export const getTemplate = authClient
  * @param metadata - The metadata of the template
  */
 export const updateTemplate = authClient
-  .schema(
+  .inputSchema(
     z.object({
       id: z.string(),
       name: z.string(),
@@ -183,7 +187,7 @@ export const updateTemplate = authClient
   })
 
 export const generateDocument = authClient
-  .schema(
+  .inputSchema(
     z.object({
       templateId: z.string(),
       data: z.record(z.union([z.string(), z.number(), z.boolean()])),

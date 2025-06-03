@@ -17,7 +17,7 @@ import { ActionError, authClient } from './safe-action'
  * @returns The created field group
  */
 export const createFieldGroup = authClient
-  .schema(
+  .inputSchema(
     z.object({
       name: z.string(),
       description: z.string().optional(),
@@ -63,7 +63,7 @@ export const getPublicFieldGroups = authClient.action(async () => {
  * @param fields - The fields to include in the field group
  */
 export const updateFieldGroup = authClient
-  .schema(
+  .inputSchema(
     z.object({
       id: z.string(),
       name: z.string().optional(),
@@ -104,7 +104,7 @@ export const updateFieldGroup = authClient
  * @param id - The id of the field group
  */
 export const deleteFieldGroup = authClient
-  .schema(z.string())
+  .inputSchema(z.string())
   .action(async ({ ctx, parsedInput }) => {
     const id = parsedInput
 

@@ -3,20 +3,23 @@ import { TemplateManager } from './components/template-manager'
 import { getTamplates } from '@/server/routes/template-action'
 
 type TemplatesPageProps = {
-  searchParams?: Promise<{}>
+  searchParams?: Promise<{
+    text?: string
+  }>
 }
 
 export default async function Templates({ searchParams }: TemplatesPageProps) {
   const params = await searchParams
+  const { text } = params ?? {}
 
-  const result = await getTamplates()
-  if (result?.serverError || !result?.data) {
-    return <GenericError error={result?.serverError} />
+  const { serverError, data } = await getTamplates({ text })
+  if (serverError || !data) {
+    return <GenericError error={serverError} />
   }
 
   return (
     <main className="container mx-auto py-6 px-4 max-w-full">
-      <TemplateManager initialTemplates={result.data} />
+      <TemplateManager initialTemplates={data} />
     </main>
   )
 }

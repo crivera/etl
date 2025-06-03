@@ -43,6 +43,7 @@ import { useEffect, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { toast } from 'sonner'
+import Image from 'next/image'
 
 interface DocumentPreviewProps {
   document: DocumentItem
@@ -70,26 +71,31 @@ export const DocumentPreview = ({
     },
   })
 
-  const {
-    execute: getDocumentExtractedDataAction,
-    isExecuting: isGettingExtractedData,
-  } = useAction(getExtractedDataForDocument, {
-    onSuccess: ({ data }) => {
-      if (data) {
-        setExtractedData(data)
-      }
+  const { execute: getDocumentExtractedDataAction } = useAction(
+    getExtractedDataForDocument,
+    {
+      onSuccess: ({ data }) => {
+        if (data) {
+          setExtractedData(data)
+        }
+      },
+      onError: ({ error }) => {
+        toast.error(error.serverError?.message ?? 'Failed to load document')
+      },
     },
-    onError: ({ error }) => {
-      toast.error(error.serverError?.message ?? 'Failed to load document')
-    },
-  })
+  )
 
   useEffect(() => {
     if (document.itemType === 'FILE') {
       getDocumentUrlAction(document.id)
       getDocumentExtractedDataAction(document.id)
     }
-  }, [document.id, document.itemType])
+  }, [
+    document.id,
+    document.itemType,
+    getDocumentExtractedDataAction,
+    getDocumentUrlAction,
+  ])
 
   // Function to get file icon based on extension
   const getFileIcon = () => {
@@ -180,7 +186,7 @@ export const DocumentPreview = ({
             </div>
           </div>
           <div className="flex-1 flex items-center justify-center">
-            <img
+            <Image
               src={documentUrl}
               alt={document.name}
               className="max-w-full max-h-full object-contain"
@@ -294,8 +300,8 @@ export const DocumentPreview = ({
                     No extracted text available
                   </h3>
                   <p className="mt-2 text-sm text-muted-foreground max-w-md">
-                    This document hasn't been processed yet. Select it and use
-                    the extraction tool to extract data from this document.
+                    This document hasn&apos;t been processed yet. Select it and
+                    use the extraction tool to extract data from this document.
                   </p>
                 </div>
               )}
@@ -406,8 +412,8 @@ export const DocumentPreview = ({
                     No extracted data available
                   </h3>
                   <p className="mt-2 text-sm text-muted-foreground max-w-md">
-                    This document hasn't been processed yet. Select it and use
-                    the extraction tool to extract data from this document.
+                    This document hasn&apos;t been processed yet. Select it and
+                    use the extraction tool to extract data from this document.
                   </p>
                 </div>
               )}

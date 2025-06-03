@@ -2,9 +2,26 @@
 
 import React from 'react'
 
-import { Label } from '@/app/components/ui/label'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/app/components/ui/breadcrumb'
 import { Button } from '@/app/components/ui/button'
 import { Checkbox } from '@/app/components/ui/checkbox'
+import { getFileIconByName } from '@/app/components/ui/common/file-icon'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/app/components/ui/dialog'
+import { Input } from '@/app/components/ui/input'
+import { Label } from '@/app/components/ui/label'
 import {
   Table,
   TableBody,
@@ -14,6 +31,7 @@ import {
   TableRow,
 } from '@/app/components/ui/table'
 import {
+  BreadcrumbItem as BreadcrumbItemType,
   DocumentItem,
   DocumentSortField,
   DocumentStatus,
@@ -25,39 +43,16 @@ import {
   ArrowUpDown,
   Calendar,
   Check,
-  FileIcon as FilePdf,
-  FileSpreadsheet,
-  FileText,
-  FileUp,
-  FileIcon as FileWord,
-  Loader2,
-  Upload,
-  PanelRight,
-  X,
-  Image,
-  FolderPlus,
-  Folder,
-  Home,
   ChevronRight,
+  FileUp,
+  FolderPlus,
+  Home,
+  Loader2,
+  PanelRight,
+  Upload,
+  X,
 } from 'lucide-react'
 import { useRef, useState } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/app/components/ui/dialog'
-import { Input } from '@/app/components/ui/input'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/app/components/ui/breadcrumb'
-import { BreadcrumbItem as BreadcrumbItemType } from '@/lib/consts'
 
 interface DocumentTableProps {
   items: DocumentItem[]
@@ -423,7 +418,7 @@ export const DocumentTable = ({
                           : onDocumentClick(item)
                       }
                     >
-                      {getFileIcon(
+                      {getFileIconByName(
                         item.name,
                         item.itemType === ItemType.FOLDER,
                       )}
@@ -578,24 +573,4 @@ export const DocumentTable = ({
       </Dialog>
     </div>
   )
-}
-
-const getFileIcon = (fileName: string, isFolder: boolean) => {
-  if (isFolder) {
-    return <Folder className="h-5 w-5 mr-2 text-gray-500" />
-  } else if (fileName.endsWith('.pdf')) {
-    return <FilePdf className="h-5 w-5 mr-2 text-red-500" />
-  } else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-    return <FileWord className="h-5 w-5 mr-2 text-blue-500" />
-  } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-    return <FileSpreadsheet className="h-5 w-5 mr-2 text-green-500" />
-  } else if (
-    fileName.endsWith('.jpg') ||
-    fileName.endsWith('.jpeg') ||
-    fileName.endsWith('.png')
-  ) {
-    return <Image className="h-5 w-5 mr-2 text-gray-500" />
-  } else {
-    return <FileText className="h-5 w-5 mr-2 text-gray-500" />
-  }
 }

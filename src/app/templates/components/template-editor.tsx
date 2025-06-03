@@ -39,15 +39,15 @@ import {
 } from '@/lib/consts'
 import { updateTemplate } from '@/server/routes/template-action'
 import { Template } from '@pdfme/common'
-import { AlertCircle, GripVertical, Loader2, Save, Upload } from 'lucide-react'
+import Docxtemplater from 'docxtemplater'
+import InspectModule from 'docxtemplater/js/inspect-module'
+import { AlertCircle, Loader2, Save, Upload } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useRouter } from 'nextjs-toploader/app'
+import PizZip from 'pizzip'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PDFMeDesigner from './pdf-designer'
-import PizZip from 'pizzip'
-import InspectModule from 'docxtemplater/js/inspect-module'
-import Docxtemplater from 'docxtemplater'
 
 interface TemplateEditorProps {
   template: TemplateDTO
@@ -105,7 +105,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
     if (editedTemplate.fileType === 'docx') {
       const zip = new PizZip(await file.arrayBuffer())
       const iModule = new InspectModule()
-      const _doc = new Docxtemplater(zip, {
+      new Docxtemplater(zip, {
         modules: [iModule],
         paragraphLoop: true,
         linebreaks: true,
@@ -164,7 +164,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
   }
 
   const handleUpdate = (template: Template) => {
-    let updatedFields: ExtractionField[] = []
+    const updatedFields: ExtractionField[] = []
     template.schemas.forEach((schema) => {
       for (const field of schema) {
         let type = ExtractionFieldType.TEXT

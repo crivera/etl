@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db } from '..'
 import documentStore from '../document-store'
-import { documents, users } from '../schema'
+import { DocumentInsert, documents, users } from '../schema'
 import { DocumentStatus, Role, SortDirection, ItemType } from '@/lib/consts'
 import { createId } from '@paralleldrive/cuid2'
 
@@ -550,7 +550,7 @@ describe('documentStore', () => {
       }
       // The Omit<DocumentInsert, 'itemType'> part is handled by the function signature
       await expect(
-        documentStore.createDocument(newDocument as any),
+        documentStore.createDocument(newDocument as DocumentInsert),
       ).rejects.toThrow()
     })
 
@@ -566,7 +566,7 @@ describe('documentStore', () => {
       }
       // The Omit<DocumentInsert, 'itemType'> part is handled by the function signature
       await expect(
-        documentStore.createDocument(newDocument as any),
+        documentStore.createDocument(newDocument as DocumentInsert),
       ).rejects.toThrow()
     })
   })

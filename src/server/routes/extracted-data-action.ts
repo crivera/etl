@@ -16,7 +16,7 @@ import { authClient, ActionError, systemClient } from './safe-action'
  * @param fields - The fields to extract data from
  */
 export const triggerExtraction = authClient
-  .schema(
+  .inputSchema(
     z.object({
       documentIds: z.array(z.string()),
       fields: z.array(ExtractionFieldSchema),
@@ -64,7 +64,7 @@ export const triggerExtraction = authClient
  * @param fields - The fields to extract data from
  */
 export const extractDocumentData = systemClient
-  .schema(ExtractDocumentSchema)
+  .inputSchema(ExtractDocumentSchema)
   .action(async ({ parsedInput }) => {
     const { documentId, fields } = parsedInput
 
@@ -97,7 +97,7 @@ export const extractDocumentData = systemClient
  * @param documentId - The id of the document
  */
 export const getExtractedDataForDocument = authClient
-  .schema(z.string())
+  .inputSchema(z.string())
   .action(async ({ ctx, parsedInput }) => {
     const documentId = parsedInput
 

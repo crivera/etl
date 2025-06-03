@@ -11,6 +11,7 @@ import { sql } from 'drizzle-orm'
 import {
   integer,
   jsonb,
+  PgColumn,
   pgEnum,
   pgTableCreator,
   text,
@@ -65,7 +66,7 @@ export const documents = createTable('document', {
   userId: text('user_id')
     .references(() => users.id)
     .notNull(),
-  parentId: text('parent_id').references((): any => documents.id),
+  parentId: text('parent_id').references((): PgColumn => documents.id),
   itemType: itemTypeEnum('item_type').default(ItemType.FILE).notNull(),
   path: text('path').notNull(),
   name: text('name').notNull(),

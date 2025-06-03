@@ -1,7 +1,6 @@
 import { env } from '@/env'
 import { SYSTEM_ROBOT } from '@/lib/consts'
 import { createSafeActionClient } from 'next-safe-action'
-import { zodAdapter } from 'next-safe-action/adapters/zod'
 import { headers } from 'next/headers'
 import userStore from '../db/user-store'
 import { createClient } from '../supabase/server'
@@ -33,7 +32,6 @@ export class ActionError extends Error {
 }
 
 export const client = createSafeActionClient({
-  validationAdapter: zodAdapter(),
   // You can provide a custom handler for server errors, otherwise the lib will use `console.error`
   // as the default logging mechanism and will return the DEFAULT_SERVER_ERROR_MESSAGE for all server errors.
   handleServerError: (e) => {

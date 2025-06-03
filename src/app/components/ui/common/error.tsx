@@ -4,11 +4,17 @@ import { Bug } from 'lucide-react'
 import { useEffect, useTransition } from 'react'
 
 import { useRouter } from 'nextjs-toploader/app'
-import type { TZSAError } from 'zsa'
-import { Button } from '../button'
-import type { ZodAny } from 'zod'
 
-export default function GenericError({ error }: { error?: TZSAError<ZodAny> }) {
+import { Button } from '../button'
+
+export default function GenericError({
+  error,
+}: {
+  error?: {
+    message: string
+    status: number
+  }
+}) {
   const [, startTransition] = useTransition()
   const router = useRouter()
   useEffect(() => {

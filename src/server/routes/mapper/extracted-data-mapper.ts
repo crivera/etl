@@ -1,4 +1,4 @@
-import { ExtractedDataDTO, ExtractionField } from '@/lib/consts'
+import { type ExtractedDataDTO, type ExtractionField } from '@/lib/consts'
 import { DocumentExtractionSelect } from '@/server/db/schema'
 
 /**
@@ -13,7 +13,7 @@ export const mapExtractedDataToExtractedDataDTO = (
     id: extractedData.id,
     documentId: extractedData.documentId,
     version: extractedData.version,
-    data: extractedData.data as Record<string, any>[],
+    data: extractedData.data as Record<string, unknown>[],
     fields: extractedData.fields as ExtractionField[],
     createdAt: extractedData.createdAt,
   }

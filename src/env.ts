@@ -1,5 +1,5 @@
 import { createEnv } from '@t3-oss/env-nextjs'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 
 export const env = createEnv({
   /**
@@ -7,7 +7,7 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    DATABASE_URL: z.string().refine((url) => url.startsWith('postgresql://')),
+    DATABASE_URL: z.url().refine((url) => url.startsWith('postgresql://')),
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
       .default('development'),
@@ -23,8 +23,8 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    NEXT_PUBLIC_VERCEL_URL: z.string().optional(),
-    NEXT_PUBLIC_SUPABASE_URL: z.string(),
+    NEXT_PUBLIC_VERCEL_URL: z.url().optional(),
+    NEXT_PUBLIC_SUPABASE_URL: z.url(),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
   },
 
