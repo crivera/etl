@@ -1,1 +1,0 @@
-ALTER TABLE "etl_templates" ADD COLUMN "metadata" jsonb;

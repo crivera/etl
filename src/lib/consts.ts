@@ -39,6 +39,7 @@ export const ExtractionFieldSchema = z.object({
   type: z.nativeEnum(ExtractionFieldType),
   description: z.string().optional(),
   customPrompt: z.string().optional(),
+  allowedValues: z.array(z.string()).optional(),
 })
 
 export const TemplateMetadataSchema = z.object({

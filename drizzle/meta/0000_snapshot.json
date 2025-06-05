@@ -1,9 +1,80 @@
 {
-  "id": "3e628a87-8c06-4173-8963-f74dfb9a5672",
+  "id": "2610ceb8-c3b1-4ae7-9353-c585deb2e3a6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.etl_document_collection": {
+      "name": "etl_document_collection",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fields": {
+          "name": "fields",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "etl_document_collection_user_id_etl_user_id_fk": {
+          "name": "etl_document_collection_user_id_etl_user_id_fk",
+          "tableFrom": "etl_document_collection",
+          "tableTo": "etl_user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.etl_document_extractions": {
       "name": "etl_document_extractions",
       "schema": "",
@@ -45,12 +116,6 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
-        },
-        "version": {
-          "name": "version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
         }
       },
       "indexes": {},
@@ -65,7 +130,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -143,13 +208,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "metadata": {
-          "name": "metadata",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
         "status": {
           "name": "status",
           "type": "integer",
@@ -159,6 +217,12 @@
         "extracted_text": {
           "name": "extracted_text",
           "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "collection_id": {
+          "name": "collection_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         }
@@ -189,6 +253,19 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "etl_document_collection_id_etl_document_collection_id_fk": {
+          "name": "etl_document_collection_id_etl_document_collection_id_fk",
+          "tableFrom": "etl_document",
+          "tableTo": "etl_document_collection",
+          "columnsFrom": [
+            "collection_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -244,7 +321,7 @@
           "name": "user_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
@@ -252,6 +329,116 @@
         "etl_field_groups_user_id_etl_user_id_fk": {
           "name": "etl_field_groups_user_id_etl_user_id_fk",
           "tableFrom": "etl_field_groups",
+          "tableTo": "etl_user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.etl_templates": {
+      "name": "etl_templates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_type": {
+          "name": "file_type",
+          "type": "file_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fields": {
+          "name": "fields",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_name": {
+          "name": "file_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "size": {
+          "name": "size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "etl_templates_user_id_etl_user_id_fk": {
+          "name": "etl_templates_user_id_etl_user_id_fk",
+          "tableFrom": "etl_templates",
           "tableTo": "etl_user",
           "columnsFrom": [
             "user_id"
@@ -325,6 +512,15 @@
     }
   },
   "enums": {
+    "public.file_type": {
+      "name": "file_type",
+      "schema": "public",
+      "values": [
+        "docx",
+        "xlsx",
+        "pdf"
+      ]
+    },
     "public.item_type": {
       "name": "item_type",
       "schema": "public",

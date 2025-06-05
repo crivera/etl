@@ -72,7 +72,16 @@ export const DataGrid = ({
 }: {
   initialGridData: GridDataDTO[]
 }) => {
-  const [columns, setColumns] = useState<DataGridColumn[]>([])
+  const [columns, setColumns] = useState<DataGridColumn[]>(() => {
+    const schema = initialGridData?.[0]?.schema || []
+    return schema.map((field) => ({
+      id: field.id,
+      label: field.label,
+      type: field.type as DataGridColumn['type'], // You may want to map types if needed
+      description: field.description,
+      // options: field.options, // If you add options to ExtractionField
+    }))
+  })
 
   const [rows, setRows] = useState<GridDataDTO[]>(initialGridData)
 

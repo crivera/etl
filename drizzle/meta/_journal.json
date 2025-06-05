@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1747315497579,
-      "tag": "0000_damp_chronomancer",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1747747514774,
-      "tag": "0001_bright_starjammers",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1747749111635,
-      "tag": "0002_curly_centennial",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1748023995060,
-      "tag": "0003_worthless_shen",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1748366007792,
-      "tag": "0004_green_random",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1749082487654,
-      "tag": "0005_odd_black_widow",
+      "when": 1749153113707,
+      "tag": "0000_open_vulcan",
       "breakpoints": true
     }
   ]

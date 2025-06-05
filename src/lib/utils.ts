@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { ExtractionFieldType } from './consts'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -49,4 +50,50 @@ export function getFileType(buffer: Buffer) {
     return 'image/png'
   }
   return 'unknown'
+}
+
+// Helper to infer ExtractionFieldType from value
+export function inferExtractionFieldType(value: unknown): ExtractionFieldType {
+  if (typeof value === 'number') {
+    return ExtractionFieldType.NUMBER
+  }
+  if (typeof value === 'boolean') {
+    return ExtractionFieldType.CHECKBOX
+  }
+  if (Array.isArray(value)) {
+    return ExtractionFieldType.LIST
+  }
+  if (typeof value === 'string') {
+    // Date (ISO or common formats)
+    if (
+      /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|([+-]\d{2}:?\d{2}))?)?$/.test(
+        value,
+      )
+    ) {
+      return ExtractionFieldType.DATE
+    }
+    // Email
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) {
+      return ExtractionFieldType.EMAIL
+    }
+    // Phone (simple, international)
+    if (/^\+?[0-9 .\-()]{7,}$/.test(value)) {
+      return ExtractionFieldType.PHONE
+    }
+    // Currency (e.g., $1,234.56)
+    if (/^[$€£¥₹]\s?\d{1,3}(,\d{3})*(\.\d{2})?$/.test(value)) {
+      return ExtractionFieldType.CURRENCY
+    }
+    // Address (very basic, could be improved)
+    if (
+      /\d+\s+\w+\s+(Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct)\b/i.test(
+        value,
+      )
+    ) {
+      return ExtractionFieldType.ADDRESS
+    }
+    // Fallback
+    return ExtractionFieldType.TEXT
+  }
+  return ExtractionFieldType.TEXT
 }

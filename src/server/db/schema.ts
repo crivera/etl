@@ -74,25 +74,19 @@ export const documents = createTable('document', {
   size: integer('size').notNull(),
   status: integer('status'),
   extractedText: jsonb('extracted_text').$type<ExtractedText>(),
+  collectionId: text('collection_id').references(() => documentCollection.id, {
+    onDelete: 'set null',
+  }),
 })
 
-export const documentExtractions = createTable(
-  'document_extractions',
-  {
-    ...defaultColumns,
-    documentId: text('document_id')
-      .references(() => documents.id, { onDelete: 'cascade' })
-      .notNull(),
-    data: jsonb('data').notNull(),
-    fields: jsonb('fields').notNull(),
-    version: integer('version').notNull(),
-  },
-  (table) => [
-    {
-      documentVersionUnique: unique().on(table.documentId, table.version),
-    },
-  ],
-)
+export const documentExtractions = createTable('document_extractions', {
+  ...defaultColumns,
+  documentId: text('document_id')
+    .references(() => documents.id, { onDelete: 'cascade' })
+    .notNull(),
+  data: jsonb('data').notNull(),
+  fields: jsonb('fields').notNull().$type<ExtractionField[]>(),
+})
 
 export const fieldGroups = createTable('field_groups', {
   ...defaultColumns,
@@ -120,21 +114,16 @@ export const templates = createTable('templates', {
   metadata: jsonb('metadata').$type<TemplateMetadata>().default({}),
 })
 
-export const gridData = createTable('grid_columns', {
+export const documentCollection = createTable('document_collection', {
   ...defaultColumns,
-  path: text('path').notNull(),
+  userId: text('user_id')
+    .references(() => users.id)
+    .notNull(),
   name: text('name').notNull(),
-  type: text('type').notNull(),
-  size: integer('size').notNull(),
-  data: jsonb('data')
-    .notNull()
-    .$type<Record<string, string | number | boolean | Date | Array<unknown>>>(),
-  extractedText: jsonb('extracted_text').$type<ExtractedText>(),
-  schema: jsonb('schema').$type<ExtractionField[]>(),
+  description: text('description'),
+  fields: jsonb('fields').notNull().$type<ExtractionField[]>(),
 })
 
-export type GridDataInsert = typeof gridData.$inferInsert
-export type GridDataSelect = typeof gridData.$inferSelect
 export type UserInsert = typeof users.$inferInsert
 export type DocumentInsert = typeof documents.$inferInsert
 export type DocumentSelect = typeof documents.$inferSelect

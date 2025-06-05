@@ -1,6 +1,8 @@
 'use server'
 
 import { env } from '@/env'
+import { ExtractionField } from '@/lib/consts'
+import { inferExtractionFieldType } from '@/lib/utils'
 import { createId } from '@paralleldrive/cuid2'
 import { z } from 'zod/v4'
 import { extractDataFromUnknownFile } from '../ai/extract'
@@ -48,13 +50,32 @@ export const uploadFiles = authClient
 
         const extractedData = await extractDataFromUnknownFile(ocrResponse)
 
+        // Ensure extractedData is an object
+        let schema: ExtractionField[] = []
+        if (
+          extractedData &&
+          typeof extractedData === 'object' &&
+          !Array.isArray(extractedData)
+        ) {
+          schema = Object.keys(extractedData).map((key) => {
+            const value = (extractedData as Record<string, unknown>)[key]
+            return {
+              id: key,
+              label: key
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (c) => c.toUpperCase()),
+              type: inferExtractionFieldType(value),
+            }
+          })
+        }
+
         const gridData = await gridDataStore.createGridData({
           path: data.path,
           name,
           type: file.type,
           size: file.size,
           data: extractedData,
-          schema: [],
+          schema,
           extractedText: ocrResponse,
         })
 

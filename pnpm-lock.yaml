@@ -104,6 +104,9 @@ importers:
       lucide-react:
         specifier: ^0.513.0
         version: 0.513.0(react@19.1.0)
+      neverthrow:
+        specifier: ^8.2.0
+        version: 8.2.0
       next:
         specifier: 15.3.3
         version: 15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -3533,6 +3536,10 @@ packages:
 
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
+
+  neverthrow@8.2.0:
+    resolution: {integrity: sha512-kOCT/1MCPAxY5iUV3wytNFUMUolzuwd/VF/1KCx7kf6CutrOsTie+84zTGTpgQycjvfLdBBdvBvFLqFD2c0wkQ==}
+    engines: {node: '>=18'}
 
   next-safe-action@8.0.1:
     resolution: {integrity: sha512-g829o3slM1mZ5z6hsgIwcV2ndXY4zT90WSO1tr7lGfiAun+Qz3jGVd81/R3czZXMLkpcM6jcKY9uvG+Z2DsUOA==}
@@ -8376,6 +8383,10 @@ snapshots:
   napi-postinstall@0.2.4: {}
 
   natural-compare@1.4.0: {}
+
+  neverthrow@8.2.0:
+    optionalDependencies:
+      '@rollup/rollup-linux-x64-gnu': 4.41.0
 
   next-safe-action@8.0.1(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
