@@ -120,6 +120,21 @@ export const templates = createTable('templates', {
   metadata: jsonb('metadata').$type<TemplateMetadata>().default({}),
 })
 
+export const gridData = createTable('grid_columns', {
+  ...defaultColumns,
+  path: text('path').notNull(),
+  name: text('name').notNull(),
+  type: text('type').notNull(),
+  size: integer('size').notNull(),
+  data: jsonb('data')
+    .notNull()
+    .$type<Record<string, string | number | boolean | Date | Array<unknown>>>(),
+  extractedText: jsonb('extracted_text').$type<ExtractedText>(),
+  schema: jsonb('schema').$type<ExtractionField[]>(),
+})
+
+export type GridDataInsert = typeof gridData.$inferInsert
+export type GridDataSelect = typeof gridData.$inferSelect
 export type UserInsert = typeof users.$inferInsert
 export type DocumentInsert = typeof documents.$inferInsert
 export type DocumentSelect = typeof documents.$inferSelect

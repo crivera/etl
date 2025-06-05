@@ -35,7 +35,7 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.9",
+    "@supabase/supabase-js": "^2.49.10",
     "@t3-oss/env-nextjs": "^0.13.6",
     "@tanstack/react-table": "^8.21.3",
     "ai": "^4.3.16",
@@ -44,12 +44,12 @@
     "date-fns": "^4.1.0",
     "docx-templates": "^4.14.1",
     "docxtemplater": "^3.63.2",
-    "drizzle-orm": "^0.44.1",
+    "drizzle-orm": "^0.44.2",
     "file-saver": "^2.0.5",
     "langfuse": "^3.37.3",
-    "lucide-react": "^0.511.0",
+    "lucide-react": "^0.513.0",
     "next": "15.3.3",
-    "next-safe-action": "^8.0.0",
+    "next-safe-action": "^8.0.1",
     "next-themes": "^0.4.6",
     "nextjs-toploader": "^3.8.16",
     "pizzip": "^3.2.0",
@@ -61,7 +61,7 @@
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.25.49",
+    "zod": "^3.25.51",
     "zod-form-data": "^3.0.0"
   },
   "devDependencies": {
@@ -71,7 +71,7 @@
     "@types/file-saver": "~2.0.7",
     "@types/node": "22.15.29",
     "@types/react": "19.1.6",
-    "@types/react-dom": "19.1.5",
+    "@types/react-dom": "19.1.6",
     "cross-env": "^7.0.3",
     "dotenv": "^16.5.0",
     "dotenv-cli": "^8.0.0",
@@ -83,7 +83,7 @@
     "tailwindcss": "4.1.8",
     "typescript": "^5.8.3",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.0"
+    "vitest": "^3.2.1"
   },
   "packageManager": "pnpm@10.11.1",
   "prettier": {

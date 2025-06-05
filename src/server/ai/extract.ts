@@ -1,5 +1,9 @@
 import { env } from '@/env'
-import { ExtractedText, ExtractionField } from '@/lib/consts'
+import {
+  ExtractedText,
+  ExtractionField,
+  ExtractionFieldSchema,
+} from '@/lib/consts'
 import { getFileType } from '@/lib/utils'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { generateObject } from 'ai'
@@ -98,6 +102,26 @@ export async function extractDataFromFile(
   })
 
   return [object]
+}
+
+export async function extractDataFromUnknownFile(text: ExtractedText) {
+  const prompt = `
+       Your goal is to accurately identify and extract all details from the unstructured text provided below.
+       Present the extracted information as a single JSON object. Prioritize accuracy and only extract information explicitly present in the text.
+       Keep everything at the root level except when you have a list of items. Inside the list keep everything at the root level too.
+
+        <text>
+        ${text.map((page) => page.text).join('\n')}
+        </text>
+      `
+
+  const { object } = await generateObject({
+    model,
+    schema: z.object({}),
+    prompt,
+  })
+
+  return object
 }
 
 /**

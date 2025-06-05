@@ -14,11 +14,11 @@ const client = new Mistral({
 
 const ocr = {
   /**
-   * OCR an image
-   * @param image - The image to OCR
+   * OCR an file
+   * @param file - The file to OCR
    * @returns The OCR response
    */
-  async ocrImage(file: Buffer) {
+  async ocrFile(file: Buffer) {
     const fileType = getFileType(file)
     const base64 = file.toString('base64')
     return await processOcrRecursively(base64, fileType)

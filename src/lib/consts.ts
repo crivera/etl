@@ -38,6 +38,7 @@ export const ExtractionFieldSchema = z.object({
   label: z.string(),
   type: z.nativeEnum(ExtractionFieldType),
   description: z.string().optional(),
+  customPrompt: z.string().optional(),
 })
 
 export const TemplateMetadataSchema = z.object({
@@ -120,6 +121,16 @@ export type DocumentItem = {
   itemType: ItemType
   parentId: string | null
   extractedText: ExtractedText | null
+}
+
+export interface GridDataDTO {
+  id: string
+  name: string
+  type: string
+  size: number
+  data: Record<string, string | number | boolean | Date | Array<unknown>>
+  schema: ExtractionField[]
+  extractedText: ExtractedText
 }
 
 export const SYSTEM_ROBOT = {

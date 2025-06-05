@@ -2,27 +2,8 @@
 
 import type React from 'react'
 
-import { useState, useRef, useMemo } from 'react'
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  flexRender,
-  createColumnHelper,
-  type ColumnDef,
-  type SortingState,
-  type ColumnFiltersState,
-} from '@tanstack/react-table'
 import { Button } from '@/app/components/ui/button'
-import { Input } from '@/app/components/ui/input'
 import { Card } from '@/app/components/ui/card'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/app/components/ui/dropdown-menu'
 import {
   Dialog,
   DialogContent,
@@ -31,6 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/app/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/app/components/ui/dropdown-menu'
+import { Input } from '@/app/components/ui/input'
 import { Label } from '@/app/components/ui/label'
 import {
   Select,
@@ -40,282 +28,53 @@ import {
   SelectValue,
 } from '@/app/components/ui/select'
 import { Textarea } from '@/app/components/ui/textarea'
+import { GridDataDTO } from '@/lib/consts'
+import { uploadFiles } from '@/server/routes/grid-action'
 import {
-  FileUp,
-  Plus,
-  MoreVertical,
-  Trash2,
-  FileText,
-  FileSpreadsheet,
-  FileIcon as FilePdf,
-  Upload,
-  Settings,
-  Edit,
-  ArrowUpDown,
-  ArrowUp,
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+} from '@tanstack/react-table'
+import {
   ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Edit,
+  FileIcon as FilePdf,
+  FileSpreadsheet,
+  FileText,
+  FileUp,
+  MoreVertical,
+  Plus,
+  Settings,
+  Trash2,
 } from 'lucide-react'
+import { useAction } from 'next-safe-action/hooks'
+import { useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 export interface DataGridColumn {
   id: string
   label: string
   type: 'text' | 'number' | 'date' | 'currency' | 'select'
-  width: number
   description?: string
   options?: string[] // For select type
 }
 
-export interface DataGridRow {
-  id: string
-  file: File
-  data: Record<string, string>
-}
+export const DataGrid = ({
+  initialGridData,
+}: {
+  initialGridData: GridDataDTO[]
+}) => {
+  const [columns, setColumns] = useState<DataGridColumn[]>([])
 
-// Extended row type for TanStack Table
-interface TableRow extends DataGridRow {
-  fileName: string
-  fileSize: string
-  fileType: string
-}
-
-export const DataGrid = () => {
-  const [columns, setColumns] = useState<DataGridColumn[]>([
-    {
-      id: 'invoice_number',
-      label: 'Invoice Number',
-      type: 'text',
-      width: 160,
-      description: 'Unique invoice identifier',
-    },
-    {
-      id: 'customer_name',
-      label: 'Customer Name',
-      type: 'text',
-      width: 220,
-      description: 'Name of the customer or client',
-    },
-    {
-      id: 'amount',
-      label: 'Amount',
-      type: 'currency',
-      width: 120,
-      description: 'Invoice amount before tax',
-    },
-    {
-      id: 'date',
-      label: 'Date',
-      type: 'date',
-      width: 130,
-      description: 'Date the invoice was issued',
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      type: 'select',
-      width: 120,
-      options: ['Paid', 'Pending', 'Active', 'Complete'],
-      description: 'Current status of the invoice',
-    },
-    {
-      id: 'due_date',
-      label: 'Due Date',
-      type: 'date',
-      width: 130,
-      description: 'Date payment is due',
-    },
-    {
-      id: 'payment_method',
-      label: 'Payment Method',
-      type: 'select',
-      width: 160,
-      options: ['Credit Card', 'Bank Transfer', 'Cash', 'PayPal'],
-      description: 'Method of payment',
-    },
-    {
-      id: 'tax_amount',
-      label: 'Tax Amount',
-      type: 'currency',
-      width: 120,
-      description: 'Tax applied to the invoice',
-    },
-    {
-      id: 'discount',
-      label: 'Discount',
-      type: 'currency',
-      width: 120,
-      description: 'Discount applied to the invoice',
-    },
-    {
-      id: 'total_amount',
-      label: 'Total Amount',
-      type: 'currency',
-      width: 150,
-      description: 'Final amount including tax and discounts',
-    },
-    {
-      id: 'notes',
-      label: 'Notes',
-      type: 'text',
-      width: 200,
-      description: 'Additional notes about the invoice',
-    },
-    {
-      id: 'reference',
-      label: 'Reference',
-      type: 'text',
-      width: 150,
-      description: 'Reference number or code',
-    },
-    {
-      id: 'department',
-      label: 'Department',
-      type: 'text',
-      width: 140,
-      description: 'Department responsible for the invoice',
-    },
-  ])
-
-  const [rows, setRows] = useState<DataGridRow[]>([
-    {
-      id: 'row-1',
-      file: {
-        name: 'invoice-2023-05.pdf',
-        size: 1024 * 225,
-        type: 'application/pdf',
-      } as File,
-      data: {
-        invoice_number: 'INV-2023-05',
-        customer_name: 'Acme Corp',
-        amount: '$1,250.00',
-        date: '2023-05-15',
-        status: 'Paid',
-        due_date: '2023-06-15',
-        payment_method: 'Credit Card',
-        tax_amount: '$100.00',
-        discount: '$50.00',
-        total_amount: '$1,300.00',
-        notes: 'Annual subscription',
-        reference: 'REF-2023-001',
-        department: 'Sales',
-      },
-    },
-    {
-      id: 'row-2',
-      file: {
-        name: 'contract-agreement.docx',
-        size: 1024 * 156,
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      } as File,
-      data: {
-        invoice_number: 'CON-2023-07',
-        customer_name: 'Tech Solutions Inc',
-        amount: '$5,000.00',
-        date: '2023-07-22',
-        status: 'Active',
-        due_date: '2023-08-22',
-        payment_method: 'Bank Transfer',
-        tax_amount: '$400.00',
-        discount: '$0.00',
-        total_amount: '$5,400.00',
-        notes: 'Consulting services',
-        reference: 'REF-2023-042',
-        department: 'Consulting',
-      },
-    },
-    {
-      id: 'row-3',
-      file: {
-        name: 'financial-report-q2.xlsx',
-        size: 1024 * 345,
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      } as File,
-      data: {
-        invoice_number: 'RPT-2023-Q2',
-        customer_name: 'Internal Report',
-        amount: '$375,000.00',
-        date: '2023-08-05',
-        status: 'Complete',
-        due_date: '2023-08-05',
-        payment_method: 'Internal',
-        tax_amount: '$0.00',
-        discount: '$0.00',
-        total_amount: '$375,000.00',
-        notes: 'Q2 Financial Summary',
-        reference: 'Q2-2023',
-        department: 'Finance',
-      },
-    },
-    {
-      id: 'row-4',
-      file: {
-        name: 'purchase-order-001.pdf',
-        size: 1024 * 189,
-        type: 'application/pdf',
-      } as File,
-      data: {
-        invoice_number: 'PO-2023-001',
-        customer_name: 'Global Manufacturing',
-        amount: '$2,750.00',
-        date: '2023-09-10',
-        status: 'Pending',
-        due_date: '2023-10-10',
-        payment_method: 'Bank Transfer',
-        tax_amount: '$220.00',
-        discount: '$100.00',
-        total_amount: '$2,870.00',
-        notes: 'Equipment purchase',
-        reference: 'PO-GM-001',
-        department: 'Procurement',
-      },
-    },
-    {
-      id: 'row-5',
-      file: {
-        name: 'service-agreement.docx',
-        size: 1024 * 267,
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      } as File,
-      data: {
-        invoice_number: 'SA-2023-15',
-        customer_name: 'Digital Innovations Ltd',
-        amount: '$8,500.00',
-        date: '2023-09-15',
-        status: 'Active',
-        due_date: '2023-10-15',
-        payment_method: 'Credit Card',
-        tax_amount: '$680.00',
-        discount: '$500.00',
-        total_amount: '$8,680.00',
-        notes: '12-month service contract',
-        reference: 'DI-SERVICE-2023',
-        department: 'Services',
-      },
-    },
-    // Adding more sample data for demonstration
-    {
-      id: 'row-6',
-      file: {
-        name: 'expense-report-sept.xlsx',
-        size: 1024 * 298,
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      } as File,
-      data: {
-        invoice_number: 'EXP-2023-09',
-        customer_name: 'Employee Expenses',
-        amount: '$3,245.67',
-        date: '2023-09-30',
-        status: 'Complete',
-        due_date: '2023-09-30',
-        payment_method: 'PayPal',
-        tax_amount: '$0.00',
-        discount: '$0.00',
-        total_amount: '$3,245.67',
-        notes: 'Monthly expense reimbursements',
-        reference: 'EXP-SEPT-2023',
-        department: 'HR',
-      },
-    },
-  ])
+  const [rows, setRows] = useState<GridDataDTO[]>(initialGridData)
 
   const [dragActive, setDragActive] = useState(false)
   const [editingCell, setEditingCell] = useState<{
@@ -339,24 +98,40 @@ export const DataGrid = () => {
   const [globalFilter, setGlobalFilter] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const { execute: uploadFilesAction, isExecuting: isUploading } = useAction(
+    uploadFiles,
+    {
+      onSuccess: (data) => {
+        if (data) {
+          console.log(data)
+          // setRows(
+          //   data.data.map((gridData) => ({
+          //     id: gridData.id,
+          //     file: new File([], gridData.name),
+          //     data: gridData.data,
+          //   })),
+          // )
+        }
+      },
+      onError: ({ error }) => {
+        toast.error(error.serverError?.message || 'Something went wrong')
+      },
+    },
+  )
+
   // Transform rows for TanStack Table
-  const tableData = useMemo<TableRow[]>(() => {
-    return rows.map((row) => ({
-      ...row,
-      fileName: row.file.name,
-      fileSize: `${(row.file.size / 1024).toFixed(1)} KB`,
-      fileType: row.file.type,
-    }))
+  const tableData = useMemo<GridDataDTO[]>(() => {
+    return rows
   }, [rows])
 
   // Create column helper
-  const columnHelper = createColumnHelper<TableRow>()
+  const columnHelper = createColumnHelper<GridDataDTO>()
 
   // Create TanStack Table columns
-  const tableColumns = useMemo<ColumnDef<TableRow, string>[]>(() => {
-    const cols: ColumnDef<TableRow, string>[] = [
+  const tableColumns = useMemo<ColumnDef<GridDataDTO, string>[]>(() => {
+    const cols: ColumnDef<GridDataDTO, string>[] = [
       // File column (pinned/sticky)
-      columnHelper.accessor((row: TableRow) => row.fileName, {
+      columnHelper.accessor((row: GridDataDTO) => row.name, {
         id: 'file',
         header: ({ table }) => (
           <div className="flex items-center justify-between w-full">
@@ -379,13 +154,13 @@ export const DataGrid = () => {
           return (
             <div className="flex items-center group w-full">
               <div className="flex items-center flex-1 min-w-0">
-                {getFileIcon(originalRow.file)}
+                {getFileIcon(originalRow.type)}
                 <div className="ml-3 min-w-0 flex-1">
                   <div className="text-sm font-medium truncate">
-                    {originalRow.file.name}
+                    {originalRow.name}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {row.original.fileSize}
+                    {(row.original.size / 1024).toFixed(2)} KB
                   </div>
                 </div>
               </div>
@@ -421,7 +196,7 @@ export const DataGrid = () => {
     // Add dynamic columns
     columns.forEach((column) => {
       cols.push(
-        columnHelper.accessor((row: TableRow) => row.data[column.id] || '', {
+        columnHelper.accessor((row: GridDataDTO) => row.data[column.id] || '', {
           id: column.id,
           header: ({ column: col }) => (
             <div className="flex items-center justify-between w-full group">
@@ -593,19 +368,7 @@ export const DataGrid = () => {
   }
 
   const handleFilesUpload = (files: File[]) => {
-    const newRows = files.map((file) => ({
-      id: `row-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      file,
-      data: columns.reduce(
-        (acc, col) => {
-          acc[col.id] = ''
-          return acc
-        },
-        {} as Record<string, string>,
-      ),
-    }))
-
-    setRows([...rows, ...newRows])
+    uploadFilesAction({ files })
   }
 
   const handleCellEdit = (rowId: string, columnId: string, value: string) => {
@@ -647,7 +410,6 @@ export const DataGrid = () => {
       id: columnId,
       label: newColumn.label.trim(),
       type: newColumn.type,
-      width: 180,
       description: newColumn.description.trim() || undefined,
       options:
         newColumn.type === 'select'
@@ -708,12 +470,12 @@ export const DataGrid = () => {
     setRows(rows.filter((row) => row.id !== rowId))
   }
 
-  const getFileIcon = (file: File) => {
-    if (file.type.includes('pdf')) {
+  const getFileIcon = (fileType: string) => {
+    if (fileType.includes('pdf')) {
       return <FilePdf className="h-5 w-5 text-red-500" />
-    } else if (file.type.includes('word') || file.type.includes('document')) {
+    } else if (fileType.includes('word') || fileType.includes('document')) {
       return <FileText className="h-5 w-5 text-blue-500" />
-    } else if (file.type.includes('sheet') || file.type.includes('excel')) {
+    } else if (fileType.includes('sheet') || fileType.includes('excel')) {
       return <FileSpreadsheet className="h-5 w-5 text-green-500" />
     } else {
       return <FileText className="h-5 w-5 text-gray-500" />
@@ -785,7 +547,7 @@ export const DataGrid = () => {
                           key={header.id}
                           className={`h-12 px-4 text-left align-middle font-medium text-muted-foreground border-r last:border-r-0 ${
                             index === 0
-                              ? 'sticky left-0 bg-muted/50 z-30 shadow-[2px_0_4px_rgba(0,0,0,0.1)] dark:shadow-[2px_0_4px_rgba(0,0,0,0.3)]'
+                              ? 'sticky left-0 bg-muted z-30 shadow-[2px_0_4px_rgba(0,0,0,0.1)] dark:shadow-[2px_0_4px_rgba(0,0,0,0.3)]'
                               : ''
                           }`}
                           style={{
@@ -800,20 +562,6 @@ export const DataGrid = () => {
                                 header.column.columnDef.header,
                                 header.getContext(),
                               )}
-                          {/* Column resizer */}
-                          {header.column.getCanResize() &&
-                            header.id !== 'file' && (
-                              <div
-                                onMouseDown={header.getResizeHandler()}
-                                onTouchStart={header.getResizeHandler()}
-                                className="absolute right-0 top-0 h-full w-1 bg-border cursor-col-resize hover:bg-primary opacity-0 hover:opacity-100 transition-opacity"
-                                style={{
-                                  transform: header.column.getIsResizing()
-                                    ? 'scaleX(2)'
-                                    : 'scaleX(1)',
-                                }}
-                              />
-                            )}
                         </th>
                       ))}
                     </tr>

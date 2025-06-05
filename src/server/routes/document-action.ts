@@ -224,7 +224,7 @@ export const ocrDocument = systemClient
         status: DocumentStatus.EXTRACTING,
       })
 
-      const ocrResponse = await ocr.ocrImage(
+      const ocrResponse = await ocr.ocrFile(
         Buffer.from(await data.arrayBuffer()),
       )
 
