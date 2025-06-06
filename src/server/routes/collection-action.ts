@@ -89,12 +89,11 @@ export const createCollection = authClient
  * @returns The deleted collection
  */
 export const deleteCollection = authClient
-  .inputSchema(z.object({ id: z.string() }))
+  .inputSchema(z.string())
   .action(async ({ ctx, parsedInput }) => {
-    const { id } = parsedInput
     const { dbUser } = ctx
 
-    const collection = await collectionStore.getCollectionById(id)
+    const collection = await collectionStore.getCollectionById(parsedInput)
 
     if (!collection) {
       throw ActionError.NotFound('Collection not found')
@@ -106,7 +105,7 @@ export const deleteCollection = authClient
       )
     }
 
-    await collectionStore.deleteCollection(id)
+    await collectionStore.deleteCollection(parsedInput)
 
     return {
       success: true,

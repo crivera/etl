@@ -15,7 +15,7 @@ import {
 } from '@/server/routes/document-action'
 import { useAction } from 'next-safe-action/hooks'
 import { useRouter } from 'nextjs-toploader/app'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { DocumentTable } from './document-table'
 import { ExtractionSidebar } from './extraction-sidebar'
@@ -69,6 +69,11 @@ export const DocumentExtractor = ({
   const [sidebarMode, setSidebarMode] = useState<'extract' | 'preview'>(
     'extract',
   )
+
+  // Update documents when initalDocuments prop changes (e.g., when navigating folders)
+  useEffect(() => {
+    setDocuments(initalDocuments.items)
+  }, [initalDocuments.items])
 
   const { execute: uploadFilesAction, isExecuting: isUploading } = useAction(
     uploadFiles,

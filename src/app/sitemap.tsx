@@ -29,6 +29,11 @@ export const links = [
     href: '/documents',
     public: false,
   },
+  {
+    label: 'Collections',
+    href: '/collections',
+    public: false,
+  },
 ]
 
 export function protectedLinks() {
