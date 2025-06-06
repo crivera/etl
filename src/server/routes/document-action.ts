@@ -117,10 +117,11 @@ export const uploadFiles = authClient
     zfd.formData({
       files: zfd.file().array(),
       parentId: zfd.text().optional(),
+      collectionId: zfd.text().optional(),
     }),
   )
   .action(async ({ ctx, parsedInput }) => {
-    const { files, parentId } = parsedInput
+    const { files, parentId, collectionId } = parsedInput
 
     const documents = []
     const { supabase } = ctx
@@ -144,6 +145,7 @@ export const uploadFiles = authClient
         size: file.size,
         status: DocumentStatus.UPLOADED,
         parentId: parentId ?? null,
+        collectionId: collectionId ?? null,
       })
 
       documents.push(document)

@@ -12,7 +12,6 @@ export const mapExtractedDataToExtractedDataDTO = (
   return {
     id: extractedData.id,
     documentId: extractedData.documentId,
-    version: extractedData.version,
     data: extractedData.data as Record<string, unknown>[],
     fields: extractedData.fields as ExtractionField[],
     createdAt: extractedData.createdAt,

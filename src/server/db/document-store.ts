@@ -62,6 +62,19 @@ const documentStore = {
   },
 
   /**
+   * Get documents by collection id
+   * @param collectionId - The id of the collection
+   * @returns The documents
+   */
+  async getDocumentsByCollectionId(collectionId: string) {
+    const result = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.collectionId, collectionId))
+    return result
+  },
+
+  /**
    * Get a document by its id
    * @param id - The id of the document
    * @returns The document or null if it doesn't exist

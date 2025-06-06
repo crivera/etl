@@ -8,24 +8,24 @@ const extractedDataStore = {
    * @param extractedData - The extracted data to create
    * @returns The created extracted data
    */
-  async createExtractedDataVersion(
-    data: Omit<DocumentExtractionInsert, 'version'>,
-  ) {
-    return await db.transaction(async (tx) => {
-      const latestVersion = await tx.query.documentExtractions.findFirst({
-        where: eq(documentExtractions.documentId, data.documentId),
-        orderBy: desc(documentExtractions.version),
-      })
+  async createExtractedDataVersion(data: DocumentExtractionInsert) {
+    const result = await db.insert(documentExtractions).values(data).returning()
+    return result[0]
+  },
 
-      const result = await tx
-        .insert(documentExtractions)
-        .values({
-          ...data,
-          version: (latestVersion?.version ?? 0) + 1,
-        })
-        .returning()
-      return result[0]
-    })
+  /**
+   * Update extracted data
+   * @param id - The id of the extracted data
+   * @param data - The extracted data to update
+   * @returns The updated extracted data
+   */
+  async updateExtractedData(id: string, data: DocumentExtractionInsert) {
+    const result = await db
+      .update(documentExtractions)
+      .set(data)
+      .where(eq(documentExtractions.id, id))
+      .returning()
+    return result[0]
   },
 
   /**
@@ -34,9 +34,8 @@ const extractedDataStore = {
    * @returns The extracted data
    */
   async getExtractedDataForDocument(documentId: string) {
-    return await db.query.documentExtractions.findMany({
+    return await db.query.documentExtractions.findFirst({
       where: eq(documentExtractions.documentId, documentId),
-      orderBy: desc(documentExtractions.version),
     })
   },
 }

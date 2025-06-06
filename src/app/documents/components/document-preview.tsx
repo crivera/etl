@@ -57,8 +57,9 @@ export const DocumentPreview = ({
   openExtractionSidebar,
 }: DocumentPreviewProps) => {
   const [documentUrl, setDocumentUrl] = useState<string | null>(null)
-  const [extractedData, setExtractedData] = useState<ExtractedDataDTO[]>([])
-  const [currentVersionIndex, setCurrentVersionIndex] = useState(0)
+  const [extractedData, setExtractedData] = useState<ExtractedDataDTO | null>(
+    null,
+  )
 
   const { execute: getDocumentUrlAction } = useAction(getDocumentUrl, {
     onSuccess: ({ data }) => {
@@ -121,30 +122,7 @@ export const DocumentPreview = ({
       window.open(documentUrl, '_blank')
     }
   }
-  const hasExtractedData = extractedData.length > 0
-  const currentVersion = hasExtractedData
-    ? extractedData[currentVersionIndex]
-    : null
-
-  // Handle version navigation
-  const goToPreviousVersion = () => {
-    if (currentVersionIndex > 0) {
-      setCurrentVersionIndex(currentVersionIndex - 1)
-    }
-  }
-
-  const goToNextVersion = () => {
-    if (currentVersionIndex < extractedData.length - 1) {
-      setCurrentVersionIndex(currentVersionIndex + 1)
-    }
-  }
-
-  const handleVersionChange = (value: string) => {
-    const index = Number.parseInt(value, 10)
-    if (!isNaN(index) && index >= 0 && index < extractedData.length) {
-      setCurrentVersionIndex(index)
-    }
-  }
+  const hasExtractedData = extractedData !== null
 
   // Function to render preview content
   const renderPreviewContent = () => {
@@ -307,68 +285,17 @@ export const DocumentPreview = ({
               )}
             </TabsContent>
             <TabsContent value="data" className="mt-0">
-              {extractedData.length > 0 ? (
+              {extractedData ? (
                 <div className="space-y-4">
                   {/* Version navigation */}
                   <div className="flex items-center justify-between border-b pb-3">
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-sm font-medium">
-                        Extraction Version {currentVersionIndex + 1} of{' '}
-                        {extractedData.length}
+
+                      <span className="ml-2 text-xs text-muted-foreground flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {extractedData.createdAt.toLocaleString()}
                       </span>
-                      {currentVersion && (
-                        <span className="ml-2 text-xs text-muted-foreground flex items-center">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {currentVersion.createdAt.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="hidden sm:block">
-                        <Select
-                          value={currentVersionIndex.toString()}
-                          onValueChange={handleVersionChange}
-                        >
-                          <SelectTrigger className="h-8 w-[180px]">
-                            <SelectValue placeholder="Select version" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {extractedData.map((version, index) => (
-                              <SelectItem key={index} value={index.toString()}>
-                                Version {index + 1}
-                                {version.createdAt && (
-                                  <span className="ml-2 text-xs text-muted-foreground">
-                                    {version.createdAt.toLocaleString()}
-                                  </span>
-                                )}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={goToPreviousVersion}
-                          disabled={currentVersionIndex === 0}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 ml-1"
-                          onClick={goToNextVersion}
-                          disabled={
-                            currentVersionIndex === extractedData.length - 1
-                          }
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
                     </div>
                   </div>
 
@@ -386,19 +313,16 @@ export const DocumentPreview = ({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {currentVersion &&
-                          currentVersion.fields.map((field) => (
-                            <TableRow key={field.id}>
-                              <TableCell className="font-medium">
-                                {field.label}
-                              </TableCell>
-                              <TableCell>
-                                {currentVersion.data.map(
-                                  (data) => data[field.id],
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                        {extractedData.fields.map((field) => (
+                          <TableRow key={field.id}>
+                            <TableCell className="font-medium">
+                              {field.label}
+                            </TableCell>
+                            <TableCell>
+                              {extractedData.data.map((data) => data[field.id])}
+                            </TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </div>

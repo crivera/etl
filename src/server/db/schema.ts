@@ -124,6 +124,8 @@ export const documentCollection = createTable('document_collection', {
   fields: jsonb('fields').notNull().$type<ExtractionField[]>(),
 })
 
+export type DocumentCollectionInsert = typeof documentCollection.$inferInsert
+export type DocumentCollectionSelect = typeof documentCollection.$inferSelect
 export type UserInsert = typeof users.$inferInsert
 export type DocumentInsert = typeof documents.$inferInsert
 export type DocumentSelect = typeof documents.$inferSelect

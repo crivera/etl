@@ -64,7 +64,6 @@ export type ExtractedText = Array<{ text: string }>
 export const ExtractedDataSchema = z.object({
   id: z.string(),
   documentId: z.string(),
-  version: z.number(),
   data: z.array(z.record(z.string(), z.any())),
   fields: z.array(ExtractionFieldSchema),
   createdAt: z.date(),
@@ -124,14 +123,12 @@ export type DocumentItem = {
   extractedText: ExtractedText | null
 }
 
-export interface GridDataDTO {
+export interface DocumentCollectionDTO {
   id: string
   name: string
-  type: string
-  size: number
-  data: Record<string, string | number | boolean | Date | Array<unknown>>
-  schema: ExtractionField[]
-  extractedText: ExtractedText
+  description: string
+  fields: ExtractionField[]
+  createdAt: Date
 }
 
 export const SYSTEM_ROBOT = {

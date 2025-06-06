@@ -1,14 +1,14 @@
 'use server'
 
 import { BASE_URL } from '@/app/robots'
-import { ExtractionFieldSchema, ExtractDocumentSchema } from '@/lib/consts'
+import { ExtractDocumentSchema, ExtractionFieldSchema } from '@/lib/consts'
 import { env } from 'process'
 import z from 'zod'
 import { extractDataFromText } from '../ai/extract'
 import documentStore from '../db/document-store'
 import extractedDataStore from '../db/extracted-data-store'
-import { mapExtractedDataToExtractedDataDTOs } from './mapper/extracted-data-mapper'
-import { authClient, ActionError, systemClient } from './safe-action'
+import { mapExtractedDataToExtractedDataDTO } from './mapper/extracted-data-mapper'
+import { ActionError, authClient, systemClient } from './safe-action'
 
 /**
  * Trigger extraction of document data
@@ -114,5 +114,9 @@ export const getExtractedDataForDocument = authClient
     const extractedData =
       await extractedDataStore.getExtractedDataForDocument(documentId)
 
-    return mapExtractedDataToExtractedDataDTOs(extractedData)
+    if (!extractedData) {
+      return null
+    }
+
+    return mapExtractedDataToExtractedDataDTO(extractedData)
   })

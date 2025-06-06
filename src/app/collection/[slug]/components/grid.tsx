@@ -28,8 +28,8 @@ import {
   SelectValue,
 } from '@/app/components/ui/select'
 import { Textarea } from '@/app/components/ui/textarea'
-import { GridDataDTO } from '@/lib/consts'
-import { uploadFiles } from '@/server/routes/grid-action'
+import { DocumentCollectionDTO, DocumentItem } from '@/lib/consts'
+
 import {
   createColumnHelper,
   flexRender,
@@ -68,9 +68,11 @@ export interface DataGridColumn {
 }
 
 export const DataGrid = ({
-  initialGridData,
+  initialCollection,
+  initialDocuments,
 }: {
-  initialGridData: GridDataDTO[]
+  initialCollection: DocumentCollectionDTO
+  initialDocuments: DocumentItem[]
 }) => {
   const [columns, setColumns] = useState<DataGridColumn[]>(() => {
     const schema = initialGridData?.[0]?.schema || []

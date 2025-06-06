@@ -8,15 +8,15 @@ export default async function Preview({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const result = await getTemplate(slug)
+  const { serverError, data } = await getTemplate(slug)
 
-  if (result?.serverError || !result?.data) {
-    return <GenericError error={result?.serverError} />
+  if (serverError || !data) {
+    return <GenericError error={serverError} />
   }
   return (
     <div className="h-full flex flex-col">
       <div className="mt-6 flex-1">
-        <TemplatePreview template={result.data} />
+        <TemplatePreview template={data} />
       </div>
     </div>
   )
