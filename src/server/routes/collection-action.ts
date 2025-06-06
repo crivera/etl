@@ -9,6 +9,7 @@ import {
 } from './mapper/collection-mapper'
 import { mapDocumentsToDocumentItems } from './mapper/document-mapper'
 import { ActionError, authClient } from './safe-action'
+import extractedDataStore from '../db/extracted-data-store'
 
 /**
  * Get all collections for a user
@@ -44,9 +45,13 @@ export const getDocumentCollectionById = authClient
     const documents =
       await documentStore.getDocumentsByCollectionId(parsedInput)
 
+    const extractedData = await extractedDataStore.getExtractedDataForDocuments(
+      documents.map((document) => document.id),
+    )
+
     return {
       collection: mapCollectionToCollectionDTO(collection),
-      documents: mapDocumentsToDocumentItems(documents),
+      documents: mapDocumentsToDocumentItems(documents, extractedData),
     }
   })
 

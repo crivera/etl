@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { db } from '.'
 import { DocumentExtractionInsert, documentExtractions } from './schema'
 
@@ -36,6 +36,17 @@ const extractedDataStore = {
   async getExtractedDataForDocument(documentId: string) {
     return await db.query.documentExtractions.findFirst({
       where: eq(documentExtractions.documentId, documentId),
+    })
+  },
+
+  /**
+   * Get extracted data for multiple documents
+   * @param documentIds - The ids of the documents
+   * @returns The extracted data
+   */
+  async getExtractedDataForDocuments(documentIds: string[]) {
+    return await db.query.documentExtractions.findMany({
+      where: inArray(documentExtractions.documentId, documentIds),
     })
   },
 }

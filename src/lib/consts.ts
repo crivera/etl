@@ -23,6 +23,7 @@ export const SortDirectionSchema = z.nativeEnum(SortDirection)
 
 export enum ExtractionFieldType {
   TEXT = 'text',
+  SELECT = 'select',
   NUMBER = 'number',
   DATE = 'date',
   EMAIL = 'email',
@@ -121,6 +122,7 @@ export type DocumentItem = {
   itemType: ItemType
   parentId: string | null
   extractedText: ExtractedText | null
+  extractedData: ExtractedDataDTO | null
 }
 
 export interface DocumentCollectionDTO {

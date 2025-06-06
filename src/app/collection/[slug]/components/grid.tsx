@@ -28,8 +28,14 @@ import {
   SelectValue,
 } from '@/app/components/ui/select'
 import { Textarea } from '@/app/components/ui/textarea'
-import { DocumentCollectionDTO, DocumentItem } from '@/lib/consts'
+import {
+  DocumentCollectionDTO,
+  DocumentItem,
+  ExtractionField,
+  ExtractionFieldType,
+} from '@/lib/consts'
 
+import { uploadFiles } from '@/server/routes/document-action'
 import {
   createColumnHelper,
   flexRender,
@@ -56,16 +62,8 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useCallback } from 'react'
 import { toast } from 'sonner'
-
-export interface DataGridColumn {
-  id: string
-  label: string
-  type: 'text' | 'number' | 'date' | 'currency' | 'select'
-  description?: string
-  options?: string[] // For select type
-}
 
 export const DataGrid = ({
   initialCollection,
@@ -74,18 +72,10 @@ export const DataGrid = ({
   initialCollection: DocumentCollectionDTO
   initialDocuments: DocumentItem[]
 }) => {
-  const [columns, setColumns] = useState<DataGridColumn[]>(() => {
-    const schema = initialGridData?.[0]?.schema || []
-    return schema.map((field) => ({
-      id: field.id,
-      label: field.label,
-      type: field.type as DataGridColumn['type'], // You may want to map types if needed
-      description: field.description,
-      // options: field.options, // If you add options to ExtractionField
-    }))
-  })
-
-  const [rows, setRows] = useState<GridDataDTO[]>(initialGridData)
+  const [columns, setColumns] = useState<ExtractionField[]>(
+    initialCollection.fields,
+  )
+  const [rows, setRows] = useState<DocumentItem[]>(initialDocuments)
 
   const [dragActive, setDragActive] = useState(false)
   const [editingCell, setEditingCell] = useState<{
@@ -95,13 +85,13 @@ export const DataGrid = ({
   const [editValue, setEditValue] = useState('')
   const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false)
   const [isEditColumnDialogOpen, setIsEditColumnDialogOpen] = useState(false)
-  const [editingColumn, setEditingColumn] = useState<DataGridColumn | null>(
+  const [editingColumn, setEditingColumn] = useState<ExtractionField | null>(
     null,
   )
   const [newColumn, setNewColumn] = useState({
     label: '',
-    type: 'text' as DataGridColumn['type'],
-    options: '',
+    type: ExtractionFieldType.TEXT,
+    allowedValues: [] as string[],
     description: '',
   })
   const [sorting, setSorting] = useState<SortingState>([])
@@ -109,42 +99,109 @@ export const DataGrid = ({
   const [globalFilter, setGlobalFilter] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { execute: uploadFilesAction, isExecuting: isUploading } = useAction(
-    uploadFiles,
-    {
-      onSuccess: (data) => {
-        if (data) {
-          console.log(data)
-          // setRows(
-          //   data.data.map((gridData) => ({
-          //     id: gridData.id,
-          //     file: new File([], gridData.name),
-          //     data: gridData.data,
-          //   })),
-          // )
-        }
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError?.message || 'Something went wrong')
-      },
+  const { execute: uploadFilesAction } = useAction(uploadFiles, {
+    onSuccess: (data) => {
+      if (data) {
+        console.log(data)
+        // setRows(
+        //   data.data.map((gridData) => ({
+        //     id: gridData.id,
+        //     file: new File([], gridData.name),
+        //     data: gridData.data,
+        //   })),
+        // )
+      }
     },
-  )
+    onError: ({ error }) => {
+      toast.error(error.serverError?.message || 'Something went wrong')
+    },
+  })
 
   // Transform rows for TanStack Table
-  const tableData = useMemo<GridDataDTO[]>(() => {
+  const tableData = useMemo<DocumentItem[]>(() => {
     return rows
   }, [rows])
 
   // Create column helper
-  const columnHelper = createColumnHelper<GridDataDTO>()
+  const columnHelper = createColumnHelper<DocumentItem>()
+
+  const handleCellSave = useCallback(() => {
+    if (!editingCell) return
+
+    setRows(
+      rows.map((row) => {
+        if (row.id !== editingCell.rowId) return row
+        // Ensure extractedData exists
+        const extractedData = row.extractedData || {
+          id: '',
+          documentId: row.id,
+          data: [],
+          fields: [],
+          createdAt: new Date(),
+        }
+        // Remove any existing entry for this column
+        const filteredData = (extractedData.data || []).filter(
+          (entry) =>
+            !Object.prototype.hasOwnProperty.call(entry, editingCell.columnId),
+        )
+        // Add the new value
+        const newData = [...filteredData, { [editingCell.columnId]: editValue }]
+        return {
+          ...row,
+          extractedData: {
+            ...extractedData,
+            data: newData,
+          },
+        }
+      }),
+    )
+
+    setEditingCell(null)
+    setEditValue('')
+  }, [editingCell, editValue, rows])
+
+  const handleRemoveRow = useCallback(
+    (rowId: string) => {
+      setRows(rows.filter((row) => row.id !== rowId))
+    },
+    [rows],
+  )
+
+  const handleRemoveColumn = useCallback(
+    (columnId: string) => {
+      setColumns(columns.filter((col) => col.id !== columnId))
+      setRows(
+        rows.map((row) => {
+          const extractedData = row.extractedData || {
+            id: '',
+            documentId: row.id,
+            data: [],
+            fields: [],
+            createdAt: new Date(),
+          }
+          const newData = (extractedData.data || []).filter(
+            (entry) => !Object.prototype.hasOwnProperty.call(entry, columnId),
+          )
+          return {
+            ...row,
+            extractedData: {
+              ...extractedData,
+              data: newData,
+            },
+          }
+        }),
+      )
+    },
+    [columns, rows],
+  )
 
   // Create TanStack Table columns
-  const tableColumns = useMemo<ColumnDef<GridDataDTO, string>[]>(() => {
-    const cols: ColumnDef<GridDataDTO, string>[] = [
+  const tableColumns = useMemo<ColumnDef<DocumentItem, string>[]>(() => {
+    const cols: ColumnDef<DocumentItem, string>[] = [
       // File column (pinned/sticky)
-      columnHelper.accessor((row: GridDataDTO) => row.name, {
+      columnHelper.accessor((row: DocumentItem) => row.name, {
         id: 'file',
-        header: ({ table }) => (
+        header: ({}) => (
           <div className="flex items-center justify-between w-full">
             <span className="font-medium">Files</span>
             <Button
@@ -165,7 +222,7 @@ export const DataGrid = ({
           return (
             <div className="flex items-center group w-full">
               <div className="flex items-center flex-1 min-w-0">
-                {getFileIcon(originalRow.type)}
+                {getFileIcon(originalRow.itemType)}
                 <div className="ml-3 min-w-0 flex-1">
                   <div className="text-sm font-medium truncate">
                     {originalRow.name}
@@ -207,127 +264,145 @@ export const DataGrid = ({
     // Add dynamic columns
     columns.forEach((column) => {
       cols.push(
-        columnHelper.accessor((row: GridDataDTO) => row.data[column.id] || '', {
-          id: column.id,
-          header: ({ column: col }) => (
-            <div className="flex items-center justify-between w-full group">
-              <Button
-                variant="ghost"
-                onClick={() => col.toggleSorting(col.getIsSorted() === 'asc')}
-                className="h-auto p-0 font-medium text-sm hover:bg-transparent flex items-center"
-              >
-                <span className="truncate flex-1 text-left">
-                  {column.label}
-                </span>
-                <div className="ml-2 flex items-center">
-                  {col.getIsSorted() === 'asc' ? (
-                    <ArrowUp className="h-3 w-3" />
-                  ) : col.getIsSorted() === 'desc' ? (
-                    <ArrowDown className="h-3 w-3" />
-                  ) : (
-                    <ArrowUpDown className="h-3 w-3 opacity-50" />
-                  )}
-                </div>
-              </Button>
-              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+        columnHelper.accessor(
+          (row: DocumentItem) =>
+            row.extractedData?.data.find(
+              (data) => data[column.id] === column.id,
+            )?.value || '',
+          {
+            id: column.id,
+            header: ({ column: col }) => (
+              <div className="flex items-center justify-between w-full group">
                 <Button
                   variant="ghost"
-                  size="icon"
-                  onClick={() => handleEditColumn(column)}
-                  className="h-6 w-6 mr-1"
+                  onClick={() => col.toggleSorting(col.getIsSorted() === 'asc')}
+                  className="h-auto p-0 font-medium text-sm hover:bg-transparent flex items-center"
                 >
-                  <Edit className="h-3 w-3" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                      <Settings className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => handleRemoveColumn(column.id)}
-                      className="text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Remove Column
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          ),
-          cell: ({ getValue, row, column: col }) => {
-            const value = getValue() as string
-            const isEditing =
-              editingCell?.rowId === row.original.id &&
-              editingCell?.columnId === col.id
-
-            if (isEditing) {
-              if (column.type === 'select' && column.options) {
-                return (
-                  <Select value={editValue} onValueChange={setEditValue}>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {column.options.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )
-              } else {
-                return (
-                  <Input
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    className="h-8 text-sm"
-                    type={
-                      column.type === 'date'
-                        ? 'date'
-                        : column.type === 'number'
-                          ? 'number'
-                          : 'text'
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleCellSave()
-                      } else if (e.key === 'Escape') {
-                        handleCellCancel()
-                      }
-                    }}
-                    onBlur={handleCellSave}
-                    autoFocus
-                  />
-                )
-              }
-            }
-
-            return (
-              <div
-                className="h-8 px-2 flex items-center cursor-pointer hover:bg-muted/50 rounded text-sm w-full"
-                onClick={() => handleCellEdit(row.original.id, col.id, value)}
-              >
-                {value || (
-                  <span className="text-muted-foreground italic">
-                    Click to edit
+                  <span className="truncate flex-1 text-left">
+                    {column.label}
                   </span>
-                )}
+                  <div className="ml-2 flex items-center">
+                    {col.getIsSorted() === 'asc' ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : col.getIsSorted() === 'desc' ? (
+                      <ArrowDown className="h-3 w-3" />
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 opacity-50" />
+                    )}
+                  </div>
+                </Button>
+                <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditColumn(column)}
+                    className="h-6 w-6 mr-1"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Settings className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => handleRemoveColumn(column.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove Column
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-            )
+            ),
+            cell: ({ getValue, row, column: col }) => {
+              const value = getValue() as string
+              const isEditing =
+                editingCell?.rowId === row.original.id &&
+                editingCell?.columnId === col.id
+
+              if (isEditing) {
+                if (
+                  column.type === ExtractionFieldType.TEXT &&
+                  column.allowedValues
+                ) {
+                  return (
+                    <Select value={editValue} onValueChange={setEditValue}>
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {column.allowedValues?.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )
+                } else {
+                  return (
+                    <Input
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      className="h-8 text-sm"
+                      type={
+                        column.type === 'date'
+                          ? 'date'
+                          : column.type === 'number'
+                            ? 'number'
+                            : 'text'
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCellSave()
+                        } else if (e.key === 'Escape') {
+                          handleCellCancel()
+                        }
+                      }}
+                      onBlur={handleCellSave}
+                      autoFocus
+                    />
+                  )
+                }
+              }
+
+              return (
+                <div
+                  className="h-8 px-2 flex items-center cursor-pointer hover:bg-muted/50 rounded text-sm w-full"
+                  onClick={() => handleCellEdit(row.original.id, col.id, value)}
+                >
+                  {value || (
+                    <span className="text-muted-foreground italic">
+                      Click to edit
+                    </span>
+                  )}
+                </div>
+              )
+            },
+            // size: column.width,
+            enableSorting: true,
+            enableResizing: false,
           },
-          // size: column.width,
-          enableSorting: true,
-          enableResizing: false,
-        }),
+        ),
       )
     })
 
     return cols
-  }, [columns, editingCell, editValue, rows])
+  }, [
+    columns,
+    editingCell,
+    editValue,
+    rows,
+    columnHelper,
+    handleCellSave,
+    handleRemoveColumn,
+    handleRemoveRow,
+  ])
 
   // Create table instance
   const table = useReactTable({
@@ -387,27 +462,6 @@ export const DataGrid = ({
     setEditValue(value)
   }
 
-  const handleCellSave = () => {
-    if (!editingCell) return
-
-    setRows(
-      rows.map((row) =>
-        row.id === editingCell.rowId
-          ? {
-              ...row,
-              data: {
-                ...row.data,
-                [editingCell.columnId]: editValue,
-              },
-            }
-          : row,
-      ),
-    )
-
-    setEditingCell(null)
-    setEditValue('')
-  }
-
   const handleCellCancel = () => {
     setEditingCell(null)
     setEditValue('')
@@ -417,14 +471,14 @@ export const DataGrid = ({
     if (!newColumn.label.trim()) return
 
     const columnId = newColumn.label.toLowerCase().replace(/\s+/g, '_')
-    const column: DataGridColumn = {
+    const column: ExtractionField = {
       id: columnId,
       label: newColumn.label.trim(),
       type: newColumn.type,
       description: newColumn.description.trim() || undefined,
-      options:
-        newColumn.type === 'select'
-          ? newColumn.options.split(',').map((opt) => opt.trim())
+      allowedValues:
+        newColumn.type === ExtractionFieldType.SELECT
+          ? newColumn.allowedValues
           : undefined,
     }
 
@@ -432,25 +486,41 @@ export const DataGrid = ({
 
     // Add empty data for this column to all existing rows
     setRows(
-      rows.map((row) => ({
-        ...row,
-        data: {
-          ...row.data,
-          [columnId]: '',
-        },
-      })),
+      rows.map((row) => {
+        const extractedData = row.extractedData || {
+          id: '',
+          documentId: row.id,
+          data: [],
+          fields: [],
+          createdAt: new Date(),
+        }
+        // Only add if not already present
+        const hasColumn = (extractedData.data || []).some((entry) =>
+          Object.prototype.hasOwnProperty.call(entry, columnId),
+        )
+        const newData = hasColumn
+          ? extractedData.data
+          : [...(extractedData.data || []), { [columnId]: '' }]
+        return {
+          ...row,
+          extractedData: {
+            ...extractedData,
+            data: newData,
+          },
+        }
+      }),
     )
 
     setNewColumn({
       label: '',
-      type: 'text',
-      options: '',
+      type: ExtractionFieldType.TEXT,
+      allowedValues: [],
       description: '',
     })
     setIsAddColumnDialogOpen(false)
   }
 
-  const handleEditColumn = (column: DataGridColumn) => {
+  const handleEditColumn = (column: ExtractionField) => {
     setEditingColumn({ ...column })
     setIsEditColumnDialogOpen(true)
   }
@@ -464,21 +534,6 @@ export const DataGrid = ({
 
     setIsEditColumnDialogOpen(false)
     setEditingColumn(null)
-  }
-
-  const handleRemoveColumn = (columnId: string) => {
-    setColumns(columns.filter((col) => col.id !== columnId))
-    setRows(
-      rows.map((row) => {
-        const newData = { ...row.data }
-        delete newData[columnId]
-        return { ...row, data: newData }
-      }),
-    )
-  }
-
-  const handleRemoveRow = (rowId: string) => {
-    setRows(rows.filter((row) => row.id !== rowId))
   }
 
   const getFileIcon = (fileType: string) => {
@@ -675,7 +730,7 @@ export const DataGrid = ({
                 onValueChange={(value) =>
                   setNewColumn({
                     ...newColumn,
-                    type: value as DataGridColumn['type'],
+                    type: value as ExtractionField['type'],
                   })
                 }
               >
@@ -692,14 +747,20 @@ export const DataGrid = ({
               </Select>
             </div>
 
-            {newColumn.type === 'select' && (
+            {newColumn.type === ExtractionFieldType.SELECT && (
               <div className="grid gap-2">
                 <Label htmlFor="columnOptions">Options (comma-separated)</Label>
                 <Input
                   id="columnOptions"
-                  value={newColumn.options}
+                  value={newColumn.allowedValues?.join(', ') || ''}
                   onChange={(e) =>
-                    setNewColumn({ ...newColumn, options: e.target.value })
+                    setNewColumn({
+                      ...newColumn,
+                      allowedValues: e.target.value
+                        .split(',')
+                        .map((opt) => opt.trim())
+                        .filter((opt) => opt.length > 0),
+                    })
                   }
                   placeholder="Option 1, Option 2, Option 3"
                 />
@@ -777,7 +838,7 @@ export const DataGrid = ({
                   onValueChange={(value) =>
                     setEditingColumn({
                       ...editingColumn,
-                      type: value as DataGridColumn['type'],
+                      type: value as ExtractionField['type'],
                     })
                   }
                 >
@@ -794,7 +855,7 @@ export const DataGrid = ({
                 </Select>
               </div>
 
-              {editingColumn.type === 'select' && (
+              {editingColumn.type === ExtractionFieldType.SELECT && (
                 <div className="grid gap-2">
                   <Label htmlFor="editColumnOptions">
                     Options (comma-separated)
@@ -802,16 +863,17 @@ export const DataGrid = ({
                   <Input
                     id="editColumnOptions"
                     value={
-                      editingColumn.options
-                        ? editingColumn.options.join(', ')
+                      editingColumn.allowedValues
+                        ? editingColumn.allowedValues.join(', ')
                         : ''
                     }
                     onChange={(e) =>
                       setEditingColumn({
                         ...editingColumn,
-                        options: e.target.value
+                        allowedValues: e.target.value
                           .split(',')
-                          .map((opt) => opt.trim()),
+                          .map((opt) => opt.trim())
+                          .filter((opt) => opt.length > 0),
                       })
                     }
                     placeholder="Option 1, Option 2, Option 3"
