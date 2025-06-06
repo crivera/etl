@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { db } from '.'
 import { DocumentExtractionInsert, documentExtractions } from './schema'
 

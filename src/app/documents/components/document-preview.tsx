@@ -2,13 +2,6 @@
 
 import { Button } from '@/app/components/ui/button'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/app/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -28,8 +21,6 @@ import { getDocumentUrl } from '@/server/routes/document-action'
 import { getExtractedDataForDocument } from '@/server/routes/extracted-data-action'
 import {
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   Code,
   Download,
@@ -39,11 +30,11 @@ import {
   X,
 } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { toast } from 'sonner'
-import Image from 'next/image'
 
 interface DocumentPreviewProps {
   document: DocumentItem

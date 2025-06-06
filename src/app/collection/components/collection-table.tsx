@@ -13,14 +13,14 @@ import {
 import { DocumentCollectionDTO } from '@/lib/consts'
 import { Dialog, DialogContent, DialogTitle } from '@radix-ui/react-dialog'
 
-import { formatDistanceToNow } from 'date-fns'
-import { Calendar, FileUp, FolderPlus, Upload, X } from 'lucide-react'
-import { useState } from 'react'
-import { useAction } from 'next-safe-action/hooks'
 import {
   createCollection,
   deleteCollection,
 } from '@/server/routes/collection-action'
+import { formatDistanceToNow } from 'date-fns'
+import { Calendar, FileUp, FolderPlus, Upload, X } from 'lucide-react'
+import { useAction } from 'next-safe-action/hooks'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 export default function CollectionTable({
@@ -34,8 +34,6 @@ export default function CollectionTable({
   const [newCollectionName, setNewCollectionName] = useState('')
   const [newCollectionDescription, setNewCollectionDescription] = useState('')
   const [collectionNameError, setCollectionNameError] = useState('')
-  const [collectionDescriptionError, setCollectionDescriptionError] =
-    useState('')
   const [collectionToRemove, setCollectionToRemove] = useState<string | null>(
     null,
   )
@@ -44,7 +42,6 @@ export default function CollectionTable({
     setNewCollectionName('')
     setNewCollectionDescription('')
     setCollectionNameError('')
-    setCollectionDescriptionError('')
     setIsNewCollectionDialogOpen(true)
   }
 
@@ -76,20 +73,19 @@ export default function CollectionTable({
     })
   }
 
-  const { execute: deleteCollectionAction, isExecuting: isDeletingCollection } =
-    useAction(deleteCollection, {
-      onSuccess: ({ data }) => {
-        toast.success('Collection deleted successfully')
-        if (data) {
-          setCollections(
-            collections.filter((collection) => collection.id !== data.id),
-          )
-        }
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError?.message ?? 'An error occurred')
-      },
-    })
+  const { execute: deleteCollectionAction } = useAction(deleteCollection, {
+    onSuccess: ({ data }) => {
+      toast.success('Collection deleted successfully')
+      if (data) {
+        setCollections(
+          collections.filter((collection) => collection.id !== data.id),
+        )
+      }
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError?.message ?? 'An error occurred')
+    },
+  })
 
   const confirmRemove = () => {
     if (collectionToRemove) {

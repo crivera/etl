@@ -1,9 +1,5 @@
 import { env } from '@/env'
-import {
-  ExtractedText,
-  ExtractionField,
-  ExtractionFieldSchema,
-} from '@/lib/consts'
+import { ExtractedText, ExtractionField } from '@/lib/consts'
 import { getFileType } from '@/lib/utils'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { generateObject } from 'ai'
@@ -61,6 +57,12 @@ export async function extractDataFromText(
   return objects
 }
 
+/**
+ * Extract data from a file
+ * @param file - The file to extract data from
+ * @param fields - The fields to extract data from
+ * @returns The extracted data
+ */
 export async function extractDataFromFile(
   file: Buffer,
   fields: ExtractionField[],
@@ -104,6 +106,11 @@ export async function extractDataFromFile(
   return [object]
 }
 
+/**
+ * Extract data from an unknown file
+ * @param text - The text to extract data from
+ * @returns The extracted data
+ */
 export async function extractDataFromUnknownFile(text: ExtractedText) {
   const prompt = `
        Your goal is to accurately identify and extract all details from the unstructured text provided below.

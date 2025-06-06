@@ -16,7 +16,6 @@ import {
   pgTableCreator,
   text,
   timestamp,
-  unique,
 } from 'drizzle-orm/pg-core'
 
 /**
