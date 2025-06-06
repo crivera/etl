@@ -72,6 +72,7 @@ export const DataGrid = ({
   initialCollection: DocumentCollectionDTO
   initialDocuments: DocumentItem[]
 }) => {
+  const [collection, setCollection] = useState(initialCollection)
   const [columns, setColumns] = useState<ExtractionField[]>(
     initialCollection.fields,
   )
@@ -572,7 +573,7 @@ export const DataGrid = ({
         ref={fileInputRef}
         type="file"
         className="hidden"
-        multiple
+        multiple={collection.fields.length === 0}
         accept=".pdf,.doc,.docx,.txt,.xlsx,.xls,.csv"
         onChange={handleFileChange}
       />
