@@ -20,6 +20,7 @@ import {
   mapDocumentToDocumentItem,
 } from './mapper/document-mapper'
 import { ActionError, authClient, systemClient } from './safe-action'
+import userStore from '../db/user-store'
 
 const sortFieldSchema = z.enum(['createdAt', 'updatedAt', 'name', 'status'])
 const BUCKET_NAME = `documents-${env.NODE_ENV}`
@@ -203,6 +204,10 @@ export const ocrDocument = systemClient
     const { documentId } = parsedInput
 
     const document = await documentStore.getDocumentById(documentId)
+    const user = await userStore.getUserById(document.userId)
+    if (!user) {
+      throw ActionError.NotFound('User not found')
+    }
 
     if (!document || document.itemType === 'FOLDER') {
       throw ActionError.NotFound('File document not found')
@@ -224,6 +229,8 @@ export const ocrDocument = systemClient
 
       await documentStore.updateDocument(documentId, {
         status: DocumentStatus.EXTRACTING,
+        extractedText: null,
+        externalId: user.externalId,
       })
 
       const ocrResponse = await ocr.ocrFile(
@@ -233,12 +240,15 @@ export const ocrDocument = systemClient
       await documentStore.updateDocument(documentId, {
         status: DocumentStatus.COMPLETED,
         extractedText: ocrResponse,
+        externalId: user.externalId,
       })
 
       return { success: true }
     } catch (error) {
       await documentStore.updateDocument(documentId, {
         status: DocumentStatus.FAILED,
+        extractedText: null,
+        externalId: user.externalId,
       })
       console.error(error)
       throw error

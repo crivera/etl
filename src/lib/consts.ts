@@ -140,6 +140,7 @@ export const SYSTEM_ROBOT = {
   role: Role.SYSTEM,
   createdAt: new Date(),
   updatedAt: new Date(),
+  externalId: 'etl',
 }
 
 export type FieldType =

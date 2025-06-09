@@ -10,11 +10,9 @@ import {
   CardTitle,
 } from '@/app/components/ui/card'
 import { env } from '@/env'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function Login() {
-  const supabase = createClient()
-
   return (
     <main className="flex flex-1 px-6 py-12 justify-center items-center">
       <Card className="w-full max-w-md">

@@ -16,6 +16,7 @@ import {
   pgTableCreator,
   text,
   timestamp,
+  uuid,
 } from 'drizzle-orm/pg-core'
 
 /**
@@ -57,7 +58,10 @@ const defaultColumns = {
 export const users = createTable('user', {
   ...defaultColumns,
   role: integer('role').default(Role.USER).notNull(),
-  externalId: text('external_id').notNull().unique(),
+  externalId: uuid('external_id')
+    .notNull()
+    .unique()
+    .default(sql`auth.uid()`),
 })
 
 export const documents = createTable('document', {

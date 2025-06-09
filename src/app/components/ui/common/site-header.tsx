@@ -3,7 +3,7 @@
 import { links } from '@/app/sitemap'
 import { env } from '@/env'
 import { useAuth } from '@/hooks/use-auth'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { getInitials } from '@/lib/utils'
 import { FileText, LogOut } from 'lucide-react'
 import Link from 'next/link'
@@ -18,7 +18,6 @@ import {
 } from '../dropdown-menu'
 
 export function SiteHeader() {
-  const supabase = createClient()
   const auth = useAuth()
 
   return (

@@ -2,12 +2,15 @@ import {
   Cursor,
   DocumentSortField,
   DocumentStatus,
+  ExtractedText,
   ItemType,
   SortDirection,
 } from '@/lib/consts'
 import { and, asc, desc, eq, inArray, SQL, sql } from 'drizzle-orm'
 import { db } from '.'
 import { documents, type DocumentInsert, type DocumentSelect } from './schema'
+import { createClient } from '../supabase/server'
+import { documentEvents } from '../realtime/document-events'
 
 interface SortConfig {
   field: DocumentSortField
@@ -132,8 +135,32 @@ const documentStore = {
    * @param id - The id of the document
    * @param document - The document to update
    */
-  async updateDocument(id: string, document: Partial<DocumentInsert>) {
-    await db.update(documents).set(document).where(eq(documents.id, id))
+  async updateDocument(
+    id: string,
+    {
+      status,
+      extractedText,
+      externalId,
+    }: {
+      status: DocumentStatus
+      extractedText: ExtractedText | null
+      externalId: string
+    },
+  ) {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(documents)
+        .set({
+          status,
+          ...(extractedText !== null ? { extractedText } : {}),
+        })
+        .where(eq(documents.id, id))
+      await documentEvents.onDocumentUpdated({
+        externalId,
+        id,
+        status,
+      })
+    })
   },
 
   /**

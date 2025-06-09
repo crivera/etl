@@ -25,6 +25,8 @@ import {
   updateFieldGroup,
 } from '@/server/routes/field-group-action'
 import { triggerExtraction } from '@/server/routes/extracted-data-action'
+import { useRealtime } from '@/hooks/use-realtime'
+import { useAuth } from '@/hooks/use-auth'
 
 interface DocumentExtractorProps {
   initalDocuments: GetDocumentsDTO
@@ -40,9 +42,16 @@ export const DocumentExtractor = ({
   initalFieldGroups,
 }: DocumentExtractorProps) => {
   const router = useRouter()
+  const { user } = useAuth()
+
   const [documents, setDocuments] = useState<DocumentItem[]>(
     initalDocuments.items,
   )
+
+  // Update documents when initalDocuments prop changes (e.g., when navigating folders)
+  useEffect(() => {
+    setDocuments(initalDocuments.items)
+  }, [initalDocuments.items])
 
   const [fieldGroups, setFieldGroups] =
     useState<FieldGroupDTO[]>(initalFieldGroups)
@@ -69,11 +78,6 @@ export const DocumentExtractor = ({
   const [sidebarMode, setSidebarMode] = useState<'extract' | 'preview'>(
     'extract',
   )
-
-  // Update documents when initalDocuments prop changes (e.g., when navigating folders)
-  useEffect(() => {
-    setDocuments(initalDocuments.items)
-  }, [initalDocuments.items])
 
   const { execute: uploadFilesAction, isExecuting: isUploading } = useAction(
     uploadFiles,
@@ -236,6 +240,21 @@ export const DocumentExtractor = ({
     })
   }
 
+  const { isConnected } = useRealtime({
+    channelName: user ? `user:${user.id}` : null,
+    onMessage: (message) => {
+      if (message.event === 'document-updated') {
+        setDocuments((prev) =>
+          prev.map((doc) =>
+            doc.id === message.payload.documentId
+              ? { ...doc, status: message.payload.status }
+              : doc,
+          ),
+        )
+      }
+    },
+  })
+
   const selectedDocuments = documents.filter((doc) => doc.selected)
 
   return (
@@ -244,6 +263,19 @@ export const DocumentExtractor = ({
         <div
           className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'lg:mr-[50%] mr-0' : ''}`}
         >
+          {isConnected ? (
+            <div className="flex justify-center items-center">
+              <p className="text-sm text-gray-500">
+                Connected to realtime updates
+              </p>
+            </div>
+          ) : (
+            <div className="flex justify-center items-center">
+              <p className="text-sm text-gray-500">
+                Disconnected from realtime updates
+              </p>
+            </div>
+          )}
           <DocumentTable
             items={documents}
             currentFolderId={currentFolderId}
