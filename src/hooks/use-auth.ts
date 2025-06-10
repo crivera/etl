@@ -14,7 +14,7 @@ export function useAuth() {
       setUser(session?.user ?? null)
     })
     return () => subscription.unsubscribe()
-  }, [supabase.auth])
+  }, [])
 
   return { user }
 }

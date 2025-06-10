@@ -24,4 +24,25 @@ export const documentEvents = {
     })
     return channel
   },
+
+  /**
+   * Send a document deleted event to the channel
+   * @param document - The document to send the event for
+   * @returns The channel
+   */
+  async onDocumentDeleted(document: {
+    externalId: string
+    id: string
+  }) {
+    const supabase = await createClient()
+    const channel = supabase.channel(`user:${document.externalId}`)
+    await channel.send({
+      type: 'broadcast',
+      event: 'document-deleted',
+      payload: {
+        documentId: document.id,
+      },
+    })
+    return channel
+  },
 }

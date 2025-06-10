@@ -51,7 +51,7 @@ export const DocumentExtractor = ({
   // Update documents when initalDocuments prop changes (e.g., when navigating folders)
   useEffect(() => {
     setDocuments(initalDocuments.items)
-  }, [initalDocuments.items])
+  }, [initalDocuments.items, currentFolderId])
 
   const [fieldGroups, setFieldGroups] =
     useState<FieldGroupDTO[]>(initalFieldGroups)
@@ -251,6 +251,15 @@ export const DocumentExtractor = ({
               : doc,
           ),
         )
+      } else if (message.event === 'document-deleted') {
+        setDocuments((prev) =>
+          prev.filter((doc) => doc.id !== message.payload.documentId),
+        )
+        // Close sidebar if the deleted document was being previewed
+        if (previewDocument?.id === message.payload.documentId) {
+          setPreviewDocument(null)
+          setSidebarOpen(false)
+        }
       }
     },
   })

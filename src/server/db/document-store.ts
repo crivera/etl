@@ -9,7 +9,6 @@ import {
 import { and, asc, desc, eq, inArray, SQL, sql } from 'drizzle-orm'
 import { db } from '.'
 import { documents, type DocumentInsert, type DocumentSelect } from './schema'
-import { createClient } from '../supabase/server'
 import { documentEvents } from '../realtime/document-events'
 
 interface SortConfig {

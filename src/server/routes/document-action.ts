@@ -21,6 +21,7 @@ import {
 } from './mapper/document-mapper'
 import { ActionError, authClient, systemClient } from './safe-action'
 import userStore from '../db/user-store'
+import { documentEvents } from '../realtime/document-events'
 
 const sortFieldSchema = z.enum(['createdAt', 'updatedAt', 'name', 'status'])
 const BUCKET_NAME = `documents-${env.NODE_ENV}`
@@ -59,6 +60,12 @@ export const deleteDocument = authClient
     }
 
     await documentStore.deleteDocument(id)
+
+    // Send realtime deletion event
+    await documentEvents.onDocumentDeleted({
+      externalId: ctx.dbUser.externalId,
+      id: document.id,
+    })
 
     return { success: true }
   })
@@ -224,6 +231,7 @@ export const ocrDocument = systemClient
         .download(document.path)
 
       if (error) {
+        console.error(error)
         throw ActionError.InternalServerError(error.message)
       }
 

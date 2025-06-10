@@ -20,7 +20,7 @@ export function useRealtime({ channelName, onMessage }: UseRealtimeProps) {
       .on('broadcast', { event: '*' }, (data) => {
         onMessage(data as RealtimeEvent)
       })
-      .subscribe(async (status: string, error: Error | undefined) => {
+      .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           setIsConnected(true)
         }
