@@ -51,7 +51,7 @@ export const DocumentExtractor = ({
   // Update documents when initalDocuments prop changes (e.g., when navigating folders)
   useEffect(() => {
     setDocuments(initalDocuments.items)
-  }, [initalDocuments.items, currentFolderId])
+  }, [initalDocuments.items])
 
   const [fieldGroups, setFieldGroups] =
     useState<FieldGroupDTO[]>(initalFieldGroups)
@@ -82,10 +82,9 @@ export const DocumentExtractor = ({
   const { execute: uploadFilesAction, isExecuting: isUploading } = useAction(
     uploadFiles,
     {
-      onSuccess: ({ data }) => {
-        if (data) {
-          setDocuments([...data, ...documents])
-        }
+      onSuccess: () => {
+        toast.success('Documents uploaded successfully')
+        router.refresh()
       },
       onError: ({ error }) => {
         toast.error(error.serverError?.message ?? 'An error occurred')
@@ -96,6 +95,7 @@ export const DocumentExtractor = ({
   const { execute: deleteDocumentAction } = useAction(deleteDocument, {
     onSuccess: () => {
       toast.success('Document deleted successfully')
+      router.refresh()
     },
     onError: ({ error }) => {
       toast.error(error.serverError?.message ?? 'An error occurred')
@@ -244,6 +244,9 @@ export const DocumentExtractor = ({
     channelName: user ? `user:${user.id}` : null,
     onMessage: (message) => {
       if (message.event === 'document-updated') {
+        if (message.payload.error) {
+          toast.error(message.payload.error ?? 'An error occurred')
+        }
         setDocuments((prev) =>
           prev.map((doc) =>
             doc.id === message.payload.documentId
@@ -251,15 +254,6 @@ export const DocumentExtractor = ({
               : doc,
           ),
         )
-      } else if (message.event === 'document-deleted') {
-        setDocuments((prev) =>
-          prev.filter((doc) => doc.id !== message.payload.documentId),
-        )
-        // Close sidebar if the deleted document was being previewed
-        if (previewDocument?.id === message.payload.documentId) {
-          setPreviewDocument(null)
-          setSidebarOpen(false)
-        }
       }
     },
   })
@@ -272,19 +266,6 @@ export const DocumentExtractor = ({
         <div
           className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'lg:mr-[50%] mr-0' : ''}`}
         >
-          {isConnected ? (
-            <div className="flex justify-center items-center">
-              <p className="text-sm text-gray-500">
-                Connected to realtime updates
-              </p>
-            </div>
-          ) : (
-            <div className="flex justify-center items-center">
-              <p className="text-sm text-gray-500">
-                Disconnected from realtime updates
-              </p>
-            </div>
-          )}
           <DocumentTable
             items={documents}
             currentFolderId={currentFolderId}
@@ -299,6 +280,7 @@ export const DocumentExtractor = ({
             onOpenSideBar={() => openExtractionSidebar(selectedDocuments)}
             onNavigateToFolder={handleNavigateToFolder}
             onDocumentClick={handleDocumentClick}
+            isConnected={isConnected}
           />
         </div>
 

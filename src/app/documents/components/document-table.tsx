@@ -68,6 +68,7 @@ interface DocumentTableProps {
   onDocumentClick: (document: DocumentItem) => void
   isUploading: boolean
   isCreatingFolder: boolean
+  isConnected: boolean
 }
 
 export const DocumentTable = ({
@@ -84,6 +85,7 @@ export const DocumentTable = ({
   onDocumentClick,
   isUploading,
   isCreatingFolder,
+  isConnected,
 }: DocumentTableProps) => {
   const [dragActive, setDragActive] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -209,7 +211,20 @@ export const DocumentTable = ({
   return (
     <div className="h-full flex flex-col border rounded-md">
       <div className="p-4 flex justify-between items-center border-b h-16">
-        <h2 className="text-xl font-semibold">Documents</h2>
+        <div className="flex items-center gap-2">
+          <div
+            className={`w-2 h-2 rounded-full ${
+              isConnected ? 'bg-green-500' : 'bg-red-500'
+            }`}
+            title={
+              isConnected
+                ? 'Connected to realtime updates'
+                : 'Disconnected from realtime updates'
+            }
+          />
+          <h2 className="text-xl font-semibold">Documents</h2>
+        </div>
+
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleOpenNewFolderDialog}>
             <FolderPlus className="h-4 w-4 mr-2" />

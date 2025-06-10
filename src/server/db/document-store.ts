@@ -10,6 +10,7 @@ import { and, asc, desc, eq, inArray, SQL, sql } from 'drizzle-orm'
 import { db } from '.'
 import { documents, type DocumentInsert, type DocumentSelect } from './schema'
 import { documentEvents } from '../realtime/document-events'
+import { ActionError } from '../routes/safe-action'
 
 interface SortConfig {
   field: DocumentSortField
@@ -140,10 +141,12 @@ const documentStore = {
       status,
       extractedText,
       externalId,
+      error,
     }: {
       status: DocumentStatus
       extractedText: ExtractedText | null
       externalId: string
+      error?: Error | ActionError
     },
   ) {
     await db.transaction(async (tx) => {
@@ -158,6 +161,7 @@ const documentStore = {
         externalId,
         id,
         status,
+        error,
       })
     })
   },

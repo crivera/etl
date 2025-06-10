@@ -7,6 +7,7 @@ interface DocumentUpdatedEvent {
   payload: {
     documentId: string
     status: DocumentStatus
+    error?: string
   }
   type: 'broadcast'
 }

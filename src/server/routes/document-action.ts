@@ -257,6 +257,7 @@ export const ocrDocument = systemClient
         status: DocumentStatus.FAILED,
         extractedText: null,
         externalId: user.externalId,
+        error: error as Error | ActionError,
       })
       console.error(error)
       throw error
