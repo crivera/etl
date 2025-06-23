@@ -82,8 +82,11 @@ export const DocumentExtractor = ({
   const { execute: uploadFilesAction, isExecuting: isUploading } = useAction(
     uploadFiles,
     {
-      onSuccess: () => {
+      onSuccess: ({ data }) => {
         toast.success('Documents uploaded successfully')
+        if (data) {
+          setDocuments((prev) => [...data, ...prev])
+        }
         router.refresh()
       },
       onError: ({ error }) => {
@@ -93,9 +96,12 @@ export const DocumentExtractor = ({
   )
 
   const { execute: deleteDocumentAction } = useAction(deleteDocument, {
-    onSuccess: () => {
+    onSuccess: ({ data }) => {
       toast.success('Document deleted successfully')
       router.refresh()
+      if (data) {
+        setDocuments((prev) => prev.filter((doc) => doc.id !== data.id))
+      }
     },
     onError: ({ error }) => {
       toast.error(error.serverError?.message ?? 'An error occurred')

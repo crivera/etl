@@ -157,8 +157,7 @@ const documentStore = {
           ...(extractedText !== null ? { extractedText } : {}),
         })
         .where(eq(documents.id, id))
-      await documentEvents.onDocumentUpdated({
-        externalId,
+      await documentEvents.onDocumentUpdated(externalId, {
         id,
         status,
         error,

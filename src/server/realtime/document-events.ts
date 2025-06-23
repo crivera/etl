@@ -45,6 +45,7 @@ export const documentEvents = {
 
   /**
    * Send a document deleted event to the channel
+   * @param externalId - The external ID of the user
    * @param document - The document to send the event for
    * @returns The channel
    */

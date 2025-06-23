@@ -62,12 +62,9 @@ export const deleteDocument = authClient
     await documentStore.deleteDocument(id)
 
     // Send realtime deletion event
-    await documentEvents.onDocumentDeleted({
-      externalId: ctx.dbUser.externalId,
-      id: document.id,
-    })
+    await documentEvents.onDocumentDeleted(ctx.dbUser.externalId, { id })
 
-    return { success: true }
+    return { success: true , id}
   })
 
 /**
@@ -232,7 +229,7 @@ export const ocrDocument = systemClient
 
       if (error) {
         console.error(error)
-        throw ActionError.InternalServerError(error.message)
+        throw ActionError.InternalServerError(error.message ?? 'Unknown error')
       }
 
       await documentStore.updateDocument(documentId, {

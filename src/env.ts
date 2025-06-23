@@ -15,6 +15,7 @@ export const env = createEnv({
     SYSTEM_KEY: z.string(),
     GEMINI_API_KEY: z.string(),
     MISTRAL_API_KEY: z.string(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string(),
   },
 
   /**
@@ -41,6 +42,7 @@ export const env = createEnv({
     NEXT_PUBLIC_VERCEL_URL: process.env.NEXT_PUBLIC_VERCEL_URL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
