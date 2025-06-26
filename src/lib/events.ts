@@ -1,6 +1,6 @@
-import { DocumentStatus } from './consts'
+import { DocumentStatus, ExtractionField } from './consts'
 
-export type RealtimeEvent = DocumentUpdatedEvent | DocumentDeletedEvent
+export type RealtimeEvent = DocumentUpdatedEvent | DocumentDeletedEvent | CollectionFieldsUpdatedEvent
 
 interface DocumentUpdatedEvent {
   event: 'document-updated'
@@ -16,6 +16,15 @@ interface DocumentDeletedEvent {
   event: 'document-deleted'
   payload: {
     documentId: string
+  }
+  type: 'broadcast'
+}
+
+interface CollectionFieldsUpdatedEvent {
+  event: 'collection-fields-updated'
+  payload: {
+    collectionId: string
+    fields: ExtractionField[]
   }
   type: 'broadcast'
 }

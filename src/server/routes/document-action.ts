@@ -7,6 +7,7 @@ import {
   DocumentStatus,
   ItemType,
   OcrDocumentSchema,
+  ExtractUnknownDocumentSchema,
   SortDirection,
   SortDirectionSchema,
 } from '@/lib/consts'
@@ -21,6 +22,7 @@ import {
 } from './mapper/document-mapper'
 import { ActionError, authClient, systemClient } from './safe-action'
 import userStore from '../db/user-store'
+import collectionStore from '../db/collection-store'
 import { documentEvents } from '../realtime/document-events'
 
 const sortFieldSchema = z.enum(['createdAt', 'updatedAt', 'name', 'status'])
@@ -247,6 +249,43 @@ export const ocrDocument = systemClient
         extractedText: ocrResponse,
         externalId: user.externalId,
       })
+
+      // Trigger extraction after OCR is complete
+      if (document.collectionId) {
+        const collection = await collectionStore.getCollectionById(document.collectionId)
+        
+        if (collection) {
+          if (collection.fields.length === 0) {
+            // First document in collection - use unknown extraction
+            fetch(`${BASE_URL}/api/v1/extract-unknown`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${env.SYSTEM_KEY}`,
+              },
+              body: JSON.stringify(
+                ExtractUnknownDocumentSchema.parse({
+                  documentId: document.id,
+                  collectionId: document.collectionId,
+                }),
+              ),
+            }).catch((err) => console.error('Failed to trigger unknown extraction:', err))
+          } else {
+            // Collection has fields - use normal extraction with schema
+            fetch(`${BASE_URL}/api/v1/extract`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${env.SYSTEM_KEY}`,
+              },
+              body: JSON.stringify({
+                documentId: document.id,
+                fields: collection.fields,
+              }),
+            }).catch((err) => console.error('Failed to trigger extraction:', err))
+          }
+        }
+      }
 
       return { success: true }
     } catch (error) {

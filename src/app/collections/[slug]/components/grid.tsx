@@ -64,6 +64,8 @@ import {
 import { useAction } from 'next-safe-action/hooks'
 import { useMemo, useRef, useState, useCallback } from 'react'
 import { toast } from 'sonner'
+import { useRealtime } from '@/hooks/use-realtime'
+import { useAuth } from '@/hooks/use-auth'
 
 export const DataGrid = ({
   initialCollection,
@@ -72,6 +74,7 @@ export const DataGrid = ({
   initialCollection: DocumentCollectionDTO
   initialDocuments: DocumentItem[]
 }) => {
+  const { user } = useAuth()
   const [collection, setCollection] = useState(initialCollection)
   const [columns, setColumns] = useState<ExtractionField[]>(
     initialCollection.fields,
@@ -100,17 +103,39 @@ export const DataGrid = ({
   const [globalFilter, setGlobalFilter] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Listen for real-time collection field updates
+  useRealtime({
+    channelName: user ? `user:${user.id}` : null,
+    onMessage: (message) => {
+      if (message.event === 'collection-fields-updated' && 
+          message.payload.collectionId === collection.id) {
+        setColumns(message.payload.fields)
+        setCollection(prev => ({ ...prev, fields: message.payload.fields }))
+        toast.success('Fields detected! New columns have been added to your collection.')
+      } else if (message.event === 'document-updated') {
+        // Update document status in the grid
+        setRows(prev => 
+          prev.map(row => 
+            row.id === message.payload.documentId
+              ? { ...row, status: message.payload.status }
+              : row
+          )
+        )
+        
+        if (message.payload.error) {
+          toast.error(message.payload.error)
+        }
+      }
+    },
+  })
+
   const { execute: uploadFilesAction } = useAction(uploadFiles, {
-    onSuccess: (data) => {
-      if (data) {
-        console.log(data)
-        // setRows(
-        //   data.data.map((gridData) => ({
-        //     id: gridData.id,
-        //     file: new File([], gridData.name),
-        //     data: gridData.data,
-        //   })),
-        // )
+    onSuccess: (result) => {
+      if (result?.data && Array.isArray(result.data) && result.data.length > 0) {
+        // Add uploaded documents to the grid
+        const newDocuments = result.data as DocumentItem[]
+        setRows(prev => [...prev, ...newDocuments])
+        toast.success(`Successfully uploaded ${newDocuments.length} document${newDocuments.length > 1 ? 's' : ''}`)
       }
     },
     onError: ({ error }) => {
@@ -210,7 +235,8 @@ export const DataGrid = ({
               size="icon"
               onClick={() => setIsAddColumnDialogOpen(true)}
               className="h-6 w-6 text-muted-foreground hover:text-primary"
-              title="Add Column"
+              title={collection.fields.length === 0 ? "Upload a document first to auto-generate fields" : "Add Column"}
+              disabled={collection.fields.length === 0}
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -403,6 +429,7 @@ export const DataGrid = ({
     handleCellSave,
     handleRemoveColumn,
     handleRemoveRow,
+    collection.fields.length,
   ])
 
   // Create table instance
@@ -455,7 +482,19 @@ export const DataGrid = ({
   }
 
   const handleFilesUpload = (files: File[]) => {
-    uploadFilesAction({ files })
+    // If collection has no fields, only allow single file upload
+    if (collection.fields.length === 0 && files.length > 1) {
+      toast.error('Please upload only one document to define the collection structure first.')
+      return
+    }
+    
+    // If collection has no fields and we already have documents, don't allow more uploads
+    if (collection.fields.length === 0 && rows.length > 0) {
+      toast.error('Please wait for the first document to be processed before uploading more.')
+      return
+    }
+    
+    uploadFilesAction({ files, collectionId: collection.id })
   }
 
   const handleCellEdit = (rowId: string, columnId: string, value: string) => {
@@ -573,7 +612,7 @@ export const DataGrid = ({
         ref={fileInputRef}
         type="file"
         className="hidden"
-        multiple={collection.fields.length === 0}
+        multiple={collection.fields.length > 0}
         accept=".pdf,.doc,.docx,.txt,.xlsx,.xls,.csv"
         onChange={handleFileChange}
       />
@@ -592,9 +631,15 @@ export const DataGrid = ({
       >
         <FileUp className="h-6 w-6 text-muted-foreground mr-3" />
         <div>
-          <p className="text-sm font-medium">Drag and drop files here</p>
+          <p className="text-sm font-medium">
+            {collection.fields.length === 0 
+              ? 'Upload your first document to define fields' 
+              : 'Drag and drop files here'}
+          </p>
           <p className="text-xs text-muted-foreground">
-            Supports PDF, DOC, DOCX, TXT, and spreadsheet files
+            {collection.fields.length === 0
+              ? 'Upload exactly one document to automatically detect fields'
+              : 'Supports PDF, DOC, DOCX, TXT, and spreadsheet files'}
           </p>
         </div>
       </div>
@@ -643,8 +688,16 @@ export const DataGrid = ({
                       >
                         <div className="flex flex-col items-center justify-center">
                           <FileUp className="h-8 w-8 mb-2" />
-                          <p className="text-sm">No files uploaded</p>
-                          <p className="text-xs">Upload files to get started</p>
+                          <p className="text-sm">
+                            {collection.fields.length === 0 
+                              ? 'Upload your first document to define the collection structure'
+                              : 'No files uploaded'}
+                          </p>
+                          <p className="text-xs">
+                            {collection.fields.length === 0 
+                              ? 'Fields will be automatically detected from your document'
+                              : 'Upload files to get started'}
+                          </p>
                         </div>
                       </td>
                     </tr>

@@ -34,6 +34,15 @@ const collectionStore = {
   async deleteCollection(id: string) {
     await db.delete(documentCollection).where(eq(documentCollection.id, id))
   },
+
+  async updateCollection(id: string, data: Partial<DocumentCollectionInsert>) {
+    const result = await db
+      .update(documentCollection)
+      .set(data)
+      .where(eq(documentCollection.id, id))
+      .returning()
+    return result[0]
+  },
 }
 
 export default collectionStore

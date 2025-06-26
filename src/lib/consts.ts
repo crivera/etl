@@ -60,6 +60,11 @@ export const ExtractDocumentSchema = z.object({
   fields: z.array(ExtractionFieldSchema),
 })
 
+export const ExtractUnknownDocumentSchema = z.object({
+  documentId: z.string(),
+  collectionId: z.string(),
+})
+
 export type ExtractedText = Array<{ text: string }>
 
 export const ExtractedDataSchema = z.object({
