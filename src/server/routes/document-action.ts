@@ -66,7 +66,7 @@ export const deleteDocument = authClient
     // Send realtime deletion event
     await documentEvents.onDocumentDeleted(ctx.dbUser.externalId, { id })
 
-    return { success: true , id}
+    return { success: true, id }
   })
 
 /**
@@ -252,38 +252,43 @@ export const ocrDocument = systemClient
 
       // Trigger extraction after OCR is complete
       if (document.collectionId) {
-        const collection = await collectionStore.getCollectionById(document.collectionId)
-        
-        if (collection) {
-          if (collection.fields.length === 0) {
-            // First document in collection - use unknown extraction
-            fetch(`${BASE_URL}/api/v1/extract-unknown`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${env.SYSTEM_KEY}`,
-              },
-              body: JSON.stringify(
-                ExtractUnknownDocumentSchema.parse({
-                  documentId: document.id,
-                  collectionId: document.collectionId,
-                }),
-              ),
-            }).catch((err) => console.error('Failed to trigger unknown extraction:', err))
-          } else {
-            // Collection has fields - use normal extraction with schema
-            fetch(`${BASE_URL}/api/v1/extract`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${env.SYSTEM_KEY}`,
-              },
-              body: JSON.stringify({
+        const collection = await collectionStore.getCollectionById(
+          document.collectionId,
+        )
+
+        if (!collection) {
+          throw ActionError.NotFound('Collection not found')
+        }
+        if (collection.fields.length === 0) {
+          // First document in collection - use unknown extraction
+          fetch(`${BASE_URL}/api/v1/extract-unknown`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${env.SYSTEM_KEY}`,
+            },
+            body: JSON.stringify(
+              ExtractUnknownDocumentSchema.parse({
                 documentId: document.id,
-                fields: collection.fields,
+                collectionId: document.collectionId,
               }),
-            }).catch((err) => console.error('Failed to trigger extraction:', err))
-          }
+            ),
+          }).catch((err) =>
+            console.error('Failed to trigger unknown extraction:', err),
+          )
+        } else {
+          // Collection has fields - use normal extraction with schema
+          fetch(`${BASE_URL}/api/v1/extract`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${env.SYSTEM_KEY}`,
+            },
+            body: JSON.stringify({
+              documentId: document.id,
+              fields: collection.fields,
+            }),
+          }).catch((err) => console.error('Failed to trigger extraction:', err))
         }
       }
 

@@ -2,6 +2,7 @@
 
 import { BASE_URL } from '@/app/robots'
 import {
+  DocumentStatus,
   ExtractDocumentSchema,
   ExtractUnknownDocumentSchema,
   ExtractionField,
@@ -154,53 +155,97 @@ export const extractUnknownDocumentData = systemClient
       throw ActionError.NotFound('Collection not found')
     }
 
-    // Extract data from unknown file structure
-    const extractedData = await extractDataFromUnknownFile(
-      document.extractedText,
-    )
-
-    // Convert extracted data to ExtractionField format
-    const fields: ExtractionField[] = []
-    const processedData: Record<string, unknown>[] = []
-
-    if (extractedData && typeof extractedData === 'object') {
-      Object.entries(extractedData).forEach(([key, value]) => {
-        // Create field definition
-        const fieldId = key.toLowerCase().replace(/\s+/g, '_')
-        const fieldType = inferFieldType(value)
-
-        fields.push({
-          id: fieldId,
-          label: key,
-          type: fieldType,
-          description: `Auto-generated field for ${key}`,
-        })
-
-        // Add to processed data
-        processedData.push({ [fieldId]: value })
-      })
-    }
-
-    // Update collection with new fields
-    await collectionStore.updateCollection(collectionId, { fields })
-
-    // Store extracted data
-    await extractedDataStore.createExtractedDataVersion({
-      documentId: document.id,
-      data: processedData,
-      fields,
-    })
-
-    // Send real-time event for collection fields update
+    // Set status to extracting unknown fields
     const user = await userStore.getUserById(collection.userId)
     if (user) {
-      await collectionEvents.onCollectionFieldsUpdated(user.externalId, {
-        collectionId,
-        fields,
+      await documentStore.updateDocument(documentId, {
+        status: DocumentStatus.EXTRACTING_UNKNOWN,
+        extractedText: document.extractedText,
+        externalId: user.externalId,
       })
     }
 
-    return { success: true, fields }
+    try {
+      // Extract data from unknown file structure
+      const extractedData = await extractDataFromUnknownFile(
+        document.extractedText,
+      )
+
+      // Convert extracted data to ExtractionField format
+      const fields: ExtractionField[] = []
+      const processedData: Record<string, unknown>[] = []
+
+      if (extractedData && typeof extractedData === 'object') {
+        Object.entries(extractedData).forEach(([key, value]) => {
+          // Create field definition
+          const fieldId = key.toLowerCase().replace(/\s+/g, '_')
+          const fieldType = inferFieldType(value)
+
+          fields.push({
+            id: fieldId,
+            label: key
+              .split('_')
+              .map(
+                (word) =>
+                  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+              )
+              .join(' '),
+            type: fieldType,
+            description: `Auto-generated field for ${key}`,
+          })
+
+          // Add to processed data
+          processedData.push({ [fieldId]: value })
+        })
+      }
+
+      const updatedCollection = await collectionStore.updateCollection(
+        collectionId,
+        { fields },
+      )
+      console.log(
+        '✅ Collection updated successfully:',
+        updatedCollection?.id,
+        'fields count:',
+        updatedCollection?.fields?.length,
+      )
+
+      // Store extracted data
+      await extractedDataStore.createExtractedDataVersion({
+        documentId: document.id,
+        data: processedData,
+        fields,
+      })
+
+      // Send real-time event for collection fields update and mark document as completed
+      if (user) {
+        await collectionEvents.onCollectionFieldsUpdated(user.externalId, {
+          collectionId,
+          fields,
+        })
+
+        // Update document status to completed
+        await documentStore.updateDocument(documentId, {
+          status: DocumentStatus.COMPLETED,
+          extractedText: document.extractedText,
+          externalId: user.externalId,
+        })
+      }
+
+      return { success: true, fields }
+    } catch (error) {
+      // Set status to failed if extraction fails
+      if (user) {
+        await documentStore.updateDocument(documentId, {
+          status: DocumentStatus.FAILED,
+          extractedText: document.extractedText,
+          externalId: user.externalId,
+          error: error as Error,
+        })
+      }
+      console.error('Failed to extract unknown document data:', error)
+      throw error
+    }
   })
 
 /**
@@ -221,31 +266,65 @@ function inferFieldType(value: unknown): ExtractionFieldType {
     return ExtractionFieldType.CHECKBOX
   }
 
+  if (Array.isArray(value)) {
+    // If it's an array, we can assume it's a list of text items
+    return ExtractionFieldType.LIST
+  }
+
   if (typeof value === 'string') {
-    // Check for email pattern
-    if (value.includes('@') && value.includes('.')) {
+    const trimmedValue = value.trim()
+
+    // Skip empty strings
+    if (!trimmedValue) {
+      return ExtractionFieldType.TEXT
+    }
+
+    // Check for currency pattern first (more specific)
+    if (
+      /^\$?\d{1,3}(,\d{3})*(\.\d{2})?$/.test(trimmedValue.replace(/^\$/, ''))
+    ) {
+      return ExtractionFieldType.CURRENCY
+    }
+
+    // Check for pure numbers (after currency check)
+    if (/^\d+(\.\d+)?$/.test(trimmedValue)) {
+      return ExtractionFieldType.NUMBER
+    }
+
+    // Check for email pattern (more strict)
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
       return ExtractionFieldType.EMAIL
     }
 
-    // Check for phone pattern
+    // Check for phone pattern (more flexible)
+    const phoneDigits = trimmedValue.replace(/\D/g, '')
     if (
-      /^\+?[\d\s\-\(\)]+$/.test(value) &&
-      value.replace(/\D/g, '').length >= 10
+      /^[\+]?[\d\s\-\(\)\.\+]+$/.test(trimmedValue) &&
+      phoneDigits.length >= 10 &&
+      phoneDigits.length <= 15
     ) {
       return ExtractionFieldType.PHONE
     }
 
-    // Check for date pattern
+    // Check for date patterns (more comprehensive)
     if (
-      /^\d{4}-\d{2}-\d{2}/.test(value) ||
-      /^\d{1,2}\/\d{1,2}\/\d{4}/.test(value)
+      /^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}/.test(trimmedValue) ||
+      /^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}/.test(trimmedValue) ||
+      /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i.test(
+        trimmedValue,
+      ) ||
+      /^\d{1,2}(st|nd|rd|th)?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i.test(
+        trimmedValue,
+      )
     ) {
       return ExtractionFieldType.DATE
     }
 
-    // Check for currency pattern
-    if (/^\$?\d+(\.\d{2})?$/.test(value.replace(/,/g, ''))) {
-      return ExtractionFieldType.CURRENCY
+    // Check for boolean-like values
+    if (
+      /^(true|false|yes|no|y|n|on|off|enabled|disabled)$/i.test(trimmedValue)
+    ) {
+      return ExtractionFieldType.CHECKBOX
     }
 
     return ExtractionFieldType.TEXT

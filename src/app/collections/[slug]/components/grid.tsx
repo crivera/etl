@@ -13,6 +13,11 @@ import {
   DialogTitle,
 } from '@/app/components/ui/dialog'
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/app/components/ui/popover'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -31,11 +36,13 @@ import { Textarea } from '@/app/components/ui/textarea'
 import {
   DocumentCollectionDTO,
   DocumentItem,
+  DocumentStatus,
   ExtractionField,
   ExtractionFieldType,
 } from '@/lib/consts'
 
-import { uploadFiles } from '@/server/routes/document-action'
+import { uploadFiles, deleteDocument } from '@/server/routes/document-action'
+import { getDocumentsForCollection } from '@/server/routes/collection-action'
 import {
   createColumnHelper,
   flexRender,
@@ -56,16 +63,111 @@ import {
   FileSpreadsheet,
   FileText,
   FileUp,
+  List,
+  Loader2,
   MoreVertical,
   Plus,
   Settings,
   Trash2,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react'
 import { useAction } from 'next-safe-action/hooks'
 import { useMemo, useRef, useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
+
+const ListDisplay = ({
+  items,
+  fieldLabel,
+}: {
+  items: unknown[]
+  fieldLabel: string
+}) => {
+  if (!items || items.length === 0)
+    return <span className="text-muted-foreground italic">Empty</span>
+
+  const renderItem = (item: unknown, index: number) => {
+    if (item === null || item === undefined) {
+      return (
+        <div key={index} className="text-sm p-2 bg-muted/30 rounded">
+          <span className="text-muted-foreground italic">null</span>
+        </div>
+      )
+    }
+
+    if (typeof item === 'object' && !Array.isArray(item)) {
+      // Render object as key-value table
+      const entries = Object.entries(item as Record<string, unknown>)
+      if (entries.length === 0) {
+        return (
+          <div key={index} className="text-sm p-2 bg-muted/30 rounded">
+            <span className="text-muted-foreground italic">Empty object</span>
+          </div>
+        )
+      }
+
+      return (
+        <div key={index} className="text-sm p-2 bg-muted/30 rounded space-y-1">
+          <div className="font-medium text-xs text-muted-foreground mb-2">
+            Item {index + 1}
+          </div>
+          {entries.map(([key, value]) => (
+            <div key={key} className="flex gap-2">
+              <span className="font-medium text-xs text-muted-foreground min-w-0 flex-shrink-0">
+                {key}:
+              </span>
+              <span className="text-xs break-words flex-1">
+                {value === null || value === undefined ? (
+                  <span className="text-muted-foreground italic">null</span>
+                ) : typeof value === 'object' ? (
+                  JSON.stringify(value)
+                ) : (
+                  String(value)
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    // Render primitive values
+    return (
+      <div key={index} className="text-sm p-2 bg-muted/30 rounded break-words">
+        {typeof item === 'boolean' ? (item ? 'Yes' : 'No') : String(item)}
+      </div>
+    )
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto p-1 text-left justify-start hover:bg-muted/50"
+        >
+          <List className="h-3 w-3 mr-1 text-muted-foreground" />
+          <span className="text-sm">
+            {items.length} item{items.length !== 1 ? 's' : ''}
+          </span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-96" align="start">
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm text-muted-foreground">
+            {fieldLabel} ({items.length} item{items.length !== 1 ? 's' : ''})
+          </h4>
+          <div className="max-h-60 overflow-y-auto space-y-2">
+            {items.map(renderItem)}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 export const DataGrid = ({
   initialCollection,
@@ -107,21 +209,28 @@ export const DataGrid = ({
   useRealtime({
     channelName: user ? `user:${user.id}` : null,
     onMessage: (message) => {
-      if (message.event === 'collection-fields-updated' && 
-          message.payload.collectionId === collection.id) {
+      if (
+        message.event === 'collection-fields-updated' &&
+        message.payload.collectionId === collection.id
+      ) {
         setColumns(message.payload.fields)
-        setCollection(prev => ({ ...prev, fields: message.payload.fields }))
-        toast.success('Fields detected! New columns have been added to your collection.')
+        setCollection((prev) => ({ ...prev, fields: message.payload.fields }))
+        toast.success(
+          'Fields detected! New columns have been added to your collection.',
+        )
+
+        // Refresh documents to get the extracted data
+        refreshDocuments(collection.id)
       } else if (message.event === 'document-updated') {
         // Update document status in the grid
-        setRows(prev => 
-          prev.map(row => 
+        setRows((prev) =>
+          prev.map((row) =>
             row.id === message.payload.documentId
               ? { ...row, status: message.payload.status }
-              : row
-          )
+              : row,
+          ),
         )
-        
+
         if (message.payload.error) {
           toast.error(message.payload.error)
         }
@@ -129,13 +238,42 @@ export const DataGrid = ({
     },
   })
 
+  const { execute: refreshDocuments } = useAction(getDocumentsForCollection, {
+    onSuccess: (result) => {
+      if (result?.data) {
+        setRows(result.data)
+      }
+    },
+    onError: ({ error }) => {
+      console.error('Failed to refresh documents:', error)
+    },
+  })
+
+  const { execute: deleteDocumentAction } = useAction(deleteDocument, {
+    onSuccess: (result) => {
+      if (result?.data) {
+        setRows((prev) => prev.filter((row) => row.id !== result.data.id))
+        toast.success('Document deleted successfully')
+      }
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError?.message || 'Failed to delete document')
+    },
+  })
+
   const { execute: uploadFilesAction } = useAction(uploadFiles, {
     onSuccess: (result) => {
-      if (result?.data && Array.isArray(result.data) && result.data.length > 0) {
+      if (
+        result?.data &&
+        Array.isArray(result.data) &&
+        result.data.length > 0
+      ) {
         // Add uploaded documents to the grid
         const newDocuments = result.data as DocumentItem[]
-        setRows(prev => [...prev, ...newDocuments])
-        toast.success(`Successfully uploaded ${newDocuments.length} document${newDocuments.length > 1 ? 's' : ''}`)
+        setRows((prev) => [...prev, ...newDocuments])
+        toast.success(
+          `Successfully uploaded ${newDocuments.length} document${newDocuments.length > 1 ? 's' : ''}`,
+        )
       }
     },
     onError: ({ error }) => {
@@ -188,9 +326,9 @@ export const DataGrid = ({
 
   const handleRemoveRow = useCallback(
     (rowId: string) => {
-      setRows(rows.filter((row) => row.id !== rowId))
+      deleteDocumentAction(rowId)
     },
-    [rows],
+    [deleteDocumentAction],
   )
 
   const handleRemoveColumn = useCallback(
@@ -235,7 +373,11 @@ export const DataGrid = ({
               size="icon"
               onClick={() => setIsAddColumnDialogOpen(true)}
               className="h-6 w-6 text-muted-foreground hover:text-primary"
-              title={collection.fields.length === 0 ? "Upload a document first to auto-generate fields" : "Add Column"}
+              title={
+                collection.fields.length === 0
+                  ? 'Upload a document first to auto-generate fields'
+                  : 'Add Column'
+              }
               disabled={collection.fields.length === 0}
             >
               <Plus className="h-4 w-4" />
@@ -254,8 +396,11 @@ export const DataGrid = ({
                   <div className="text-sm font-medium truncate">
                     {originalRow.name}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {(row.original.size / 1024).toFixed(2)} KB
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground">
+                      {(row.original.size / 1024).toFixed(2)} KB
+                    </div>
+                    {getStatusBadge(originalRow.status)}
                   </div>
                 </div>
               </div>
@@ -292,10 +437,28 @@ export const DataGrid = ({
     columns.forEach((column) => {
       cols.push(
         columnHelper.accessor(
-          (row: DocumentItem) =>
-            row.extractedData?.data.find(
-              (data) => data[column.id] === column.id,
-            )?.value || '',
+          (row: DocumentItem) => {
+            const dataEntry = row.extractedData?.data.find((data) =>
+              Object.prototype.hasOwnProperty.call(data, column.id),
+            )
+            if (!dataEntry) return ''
+
+            const value = dataEntry[column.id]
+
+            // Convert value to string for React display
+            if (value === null || value === undefined) return ''
+            if (typeof value === 'string') return value
+            if (typeof value === 'number') return value.toString()
+            if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+            if (typeof value === 'object') {
+              // Handle arrays and objects
+              if (Array.isArray(value)) {
+                return value.join(', ')
+              }
+              return JSON.stringify(value)
+            }
+            return String(value)
+          },
           {
             id: column.id,
             header: ({ column: col }) => (
@@ -306,7 +469,7 @@ export const DataGrid = ({
                   className="h-auto p-0 font-medium text-sm hover:bg-transparent flex items-center"
                 >
                   <span className="truncate flex-1 text-left">
-                    {column.label}
+                    {formatFieldName(column.label)}
                   </span>
                   <div className="ml-2 flex items-center">
                     {col.getIsSorted() === 'asc' ? (
@@ -351,6 +514,27 @@ export const DataGrid = ({
               const isEditing =
                 editingCell?.rowId === row.original.id &&
                 editingCell?.columnId === col.id
+
+              // Special handling for LIST field types
+              if (column.type === ExtractionFieldType.LIST && !isEditing) {
+                // Find the original data entry to get the raw array value
+                const dataEntry = row.original.extractedData?.data.find(
+                  (data) =>
+                    Object.prototype.hasOwnProperty.call(data, column.id),
+                )
+                const rawValue = dataEntry?.[column.id]
+
+                if (Array.isArray(rawValue)) {
+                  return (
+                    <div className="h-8 px-2 flex items-center w-full">
+                      <ListDisplay
+                        items={rawValue}
+                        fieldLabel={formatFieldName(column.label)}
+                      />
+                    </div>
+                  )
+                }
+              }
 
               if (isEditing) {
                 if (
@@ -484,16 +668,20 @@ export const DataGrid = ({
   const handleFilesUpload = (files: File[]) => {
     // If collection has no fields, only allow single file upload
     if (collection.fields.length === 0 && files.length > 1) {
-      toast.error('Please upload only one document to define the collection structure first.')
+      toast.error(
+        'Please upload only one document to define the collection structure first.',
+      )
       return
     }
-    
+
     // If collection has no fields and we already have documents, don't allow more uploads
     if (collection.fields.length === 0 && rows.length > 0) {
-      toast.error('Please wait for the first document to be processed before uploading more.')
+      toast.error(
+        'Please wait for the first document to be processed before uploading more.',
+      )
       return
     }
-    
+
     uploadFilesAction({ files, collectionId: collection.id })
   }
 
@@ -588,6 +776,50 @@ export const DataGrid = ({
     }
   }
 
+  const formatFieldName = (fieldName: string) => {
+    return fieldName
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+  }
+
+  const getStatusBadge = (status: DocumentStatus | null) => {
+    if (status === null || status === DocumentStatus.UPLOADED) return null
+
+    switch (status) {
+      case DocumentStatus.EXTRACTING:
+        return (
+          <div className="flex items-center text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            Processing
+          </div>
+        )
+      case DocumentStatus.EXTRACTING_UNKNOWN:
+        return (
+          <div className="flex items-center text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            Detecting Fields
+          </div>
+        )
+      case DocumentStatus.COMPLETED:
+        return (
+          <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Ready
+          </div>
+        )
+      case DocumentStatus.FAILED:
+        return (
+          <div className="flex items-center text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full">
+            <XCircle className="h-3 w-3 mr-1" />
+            Failed
+          </div>
+        )
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
@@ -632,8 +864,8 @@ export const DataGrid = ({
         <FileUp className="h-6 w-6 text-muted-foreground mr-3" />
         <div>
           <p className="text-sm font-medium">
-            {collection.fields.length === 0 
-              ? 'Upload your first document to define fields' 
+            {collection.fields.length === 0
+              ? 'Upload your first document to define fields'
               : 'Drag and drop files here'}
           </p>
           <p className="text-xs text-muted-foreground">
@@ -689,12 +921,12 @@ export const DataGrid = ({
                         <div className="flex flex-col items-center justify-center">
                           <FileUp className="h-8 w-8 mb-2" />
                           <p className="text-sm">
-                            {collection.fields.length === 0 
+                            {collection.fields.length === 0
                               ? 'Upload your first document to define the collection structure'
                               : 'No files uploaded'}
                           </p>
                           <p className="text-xs">
-                            {collection.fields.length === 0 
+                            {collection.fields.length === 0
                               ? 'Fields will be automatically detected from your document'
                               : 'Upload files to get started'}
                           </p>
@@ -760,7 +992,7 @@ export const DataGrid = ({
                 onChange={(e) =>
                   setNewColumn({ ...newColumn, label: e.target.value })
                 }
-                placeholder="Enter column name"
+                placeholder="Enter column name (e.g., Company Name)"
               />
             </div>
 
@@ -796,6 +1028,7 @@ export const DataGrid = ({
                   <SelectItem value="number">Number</SelectItem>
                   <SelectItem value="date">Date</SelectItem>
                   <SelectItem value="currency">Currency</SelectItem>
+                  <SelectItem value="list">List</SelectItem>
                   <SelectItem value="select">Select (Dropdown)</SelectItem>
                 </SelectContent>
               </Select>
@@ -863,7 +1096,7 @@ export const DataGrid = ({
                       label: e.target.value,
                     })
                   }
-                  placeholder="Enter column name"
+                  placeholder="Enter column name (e.g., Company Name)"
                 />
               </div>
 
@@ -904,6 +1137,7 @@ export const DataGrid = ({
                     <SelectItem value="number">Number</SelectItem>
                     <SelectItem value="date">Date</SelectItem>
                     <SelectItem value="currency">Currency</SelectItem>
+                    <SelectItem value="list">List</SelectItem>
                     <SelectItem value="select">Select (Dropdown)</SelectItem>
                   </SelectContent>
                 </Select>

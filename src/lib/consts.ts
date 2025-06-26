@@ -10,8 +10,9 @@ export enum Role {
 export enum DocumentStatus {
   UPLOADED = 0,
   EXTRACTING = 1,
-  COMPLETED = 2,
-  FAILED = 3,
+  EXTRACTING_UNKNOWN = 2,
+  COMPLETED = 3,
+  FAILED = 4,
 }
 
 export enum SortDirection {

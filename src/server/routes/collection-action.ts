@@ -56,6 +56,33 @@ export const getDocumentCollectionById = authClient
   })
 
 /**
+ * Get documents for a collection (used for refreshing after field detection)
+ * @param collectionId - The collection ID
+ * @returns The documents with extracted data
+ */
+export const getDocumentsForCollection = authClient
+  .inputSchema(z.string())
+  .action(async ({ ctx, parsedInput }) => {
+    const collectionId = parsedInput
+    
+    // Verify user has access to this collection
+    const collection = await collectionStore.getCollectionById(collectionId)
+    if (!collection) {
+      throw ActionError.NotFound('Collection not found')
+    }
+    if (collection.userId !== ctx.dbUser.id) {
+      throw ActionError.Forbidden('You are not allowed to view this collection')
+    }
+
+    const documents = await documentStore.getDocumentsByCollectionId(collectionId)
+    const extractedData = await extractedDataStore.getExtractedDataForDocuments(
+      documents.map((document) => document.id),
+    )
+
+    return mapDocumentsToDocumentItems(documents, extractedData)
+  })
+
+/**
  * Create a new collection
  * @param ctx - The context
  * @param parsedInput - The parsed input

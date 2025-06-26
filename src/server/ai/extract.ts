@@ -9,7 +9,7 @@ const google = createGoogleGenerativeAI({
   apiKey: env.GEMINI_API_KEY,
 })
 
-const model = google('gemini-2.5-flash-preview-04-17')
+const model = google('gemini-2.5-flash')
 
 /**
  * Extract data from text
@@ -42,8 +42,6 @@ export async function extractDataFromText(
         ${page.text}
         </text>
       `
-
-    // console.log(prompt)
 
     const { object } = await generateObject({
       model,
@@ -121,10 +119,10 @@ export async function extractDataFromUnknownFile(text: ExtractedText) {
         ${text.map((page) => page.text).join('\n')}
         </text>
       `
-
+  console.log(prompt)
   const { object } = await generateObject({
     model,
-    schema: z.object({}),
+    schema: z.record(z.any()),
     prompt,
   })
 
