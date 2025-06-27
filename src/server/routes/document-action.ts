@@ -378,3 +378,46 @@ export const getDocumentUrl = authClient
 
     return { url: data.signedUrl }
   })
+
+/**
+ * Rerun extraction for a document
+ * @param id - The id of the document
+ */
+export const rerunExtraction = authClient
+  .inputSchema(z.string())
+  .action(async ({ ctx, parsedInput }) => {
+    const id = parsedInput
+
+    const document = await documentStore.getDocumentById(id)
+
+    if (!document) {
+      throw ActionError.NotFound('Document not found')
+    }
+
+    if (document.userId !== ctx.dbUser.id) {
+      throw ActionError.Forbidden('You are not allowed to rerun extraction for this document')
+    }
+
+    if (document.itemType === 'FOLDER') {
+      throw ActionError.BadRequest('Cannot rerun extraction on a folder')
+    }
+
+    // Reset document status to trigger re-extraction
+    await documentStore.updateDocument(id, {
+      status: DocumentStatus.UPLOADED,
+    })
+
+    // Trigger OCR again (which will trigger extraction after completion)
+    fetch(`${BASE_URL}/api/v1/ocr`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.SYSTEM_KEY}`,
+      },
+      body: JSON.stringify(
+        OcrDocumentSchema.parse({ documentId: id }),
+      ),
+    }).catch((err) => console.error('Failed to trigger OCR:', err))
+
+    return { success: true, id }
+  })

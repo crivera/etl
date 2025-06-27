@@ -30,7 +30,10 @@ export async function extractDataFromText(
         You are an expert data extraction AI.
         Your goal is to accurately identify and extract the following details from the unstructured text provided below:
 
-        ${fields.map((field, index) => `${index + 1}. **${field.label}**: ${field.description}`).join('\n')}
+        ${fields.map((field, index) => {
+          const description = field.customPrompt || field.description || 'Extract this field value'
+          return `${index + 1}. **${field.label}**: ${description}`
+        }).join('\n')}
 
         Present the extracted information as a single JSON object. Use the following keys:
         ${fields.map((field) => `- "${field.id}"`).join('\n')}
@@ -82,7 +85,10 @@ export async function extractDataFromFile(
               You are an expert data extraction AI.
               Your goal is to accurately identify and extract the following details from the document provided:
 
-              ${fields.map((field, index) => `${index + 1}. **${field.label}**: ${field.description}`).join('\n')}
+              ${fields.map((field, index) => {
+                const description = field.customPrompt || field.description || 'Extract this field value'
+                return `${index + 1}. **${field.label}**: ${description}`
+              }).join('\n')}
 
               Present the extracted information as a single JSON object. Use the following keys:
               ${fields.map((field) => `- "${field.id}"`).join('\n')}

@@ -41,8 +41,15 @@ import {
   ExtractionFieldType,
 } from '@/lib/consts'
 
-import { uploadFiles, deleteDocument } from '@/server/routes/document-action'
-import { getDocumentsForCollection } from '@/server/routes/collection-action'
+import {
+  uploadFiles,
+  deleteDocument,
+  rerunExtraction,
+} from '@/server/routes/document-action'
+import {
+  getDocumentsForCollection,
+  updateCollectionFields,
+} from '@/server/routes/collection-action'
 import {
   createColumnHelper,
   flexRender,
@@ -67,6 +74,7 @@ import {
   Loader2,
   MoreVertical,
   Plus,
+  RefreshCw,
   Settings,
   Trash2,
   CheckCircle,
@@ -77,6 +85,7 @@ import { useMemo, useRef, useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
+import { format, isValid, parseISO } from 'date-fns'
 
 const ListDisplay = ({
   items,
@@ -199,6 +208,7 @@ export const DataGrid = ({
     type: ExtractionFieldType.TEXT,
     allowedValues: [] as string[],
     description: '',
+    customPrompt: '',
   })
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -231,6 +241,10 @@ export const DataGrid = ({
           ),
         )
 
+        // If document processing completed, refresh all documents to get extracted data
+        if (message.payload.status === DocumentStatus.COMPLETED) {
+          refreshDocuments(collection.id)
+        }
         if (message.payload.error) {
           toast.error(message.payload.error)
         }
@@ -280,6 +294,42 @@ export const DataGrid = ({
       toast.error(error.serverError?.message || 'Something went wrong')
     },
   })
+
+  const { execute: rerunExtractionAction } = useAction(rerunExtraction, {
+    onSuccess: (result) => {
+      if (result?.data) {
+        // Update document status to show it's processing again
+        setRows((prev) =>
+          prev.map((row) =>
+            row.id === result.data.id
+              ? { ...row, status: DocumentStatus.UPLOADED }
+              : row,
+          ),
+        )
+        toast.success('Extraction restarted successfully')
+      }
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError?.message || 'Failed to rerun extraction')
+    },
+  })
+
+  const { execute: updateCollectionFieldsAction } = useAction(
+    updateCollectionFields,
+    {
+      onSuccess: (result) => {
+        if (result?.data) {
+          setCollection(result.data)
+          toast.success('Collection fields updated successfully')
+        }
+      },
+      onError: ({ error }) => {
+        toast.error(
+          error.serverError?.message || 'Failed to update collection fields',
+        )
+      },
+    },
+  )
 
   // Transform rows for TanStack Table
   const tableData = useMemo<DocumentItem[]>(() => {
@@ -333,7 +383,22 @@ export const DataGrid = ({
 
   const handleRemoveColumn = useCallback(
     (columnId: string) => {
-      setColumns(columns.filter((col) => col.id !== columnId))
+      const newColumns = columns.filter((col) => col.id !== columnId)
+      setColumns(newColumns)
+
+      // Update collection fields in database
+      updateCollectionFieldsAction({
+        collectionId: collection.id,
+        fields: newColumns.map((col) => ({
+          id: col.id,
+          label: col.label,
+          type: col.type,
+          description: col.description,
+          prompt: col.customPrompt,
+          allowedValues: col.allowedValues,
+        })),
+      })
+
       setRows(
         rows.map((row) => {
           const extractedData = row.extractedData || {
@@ -356,7 +421,7 @@ export const DataGrid = ({
         }),
       )
     },
-    [columns, rows],
+    [columns, rows, collection.id, updateCollectionFieldsAction],
   )
 
   // Create TanStack Table columns
@@ -393,8 +458,19 @@ export const DataGrid = ({
               <div className="flex items-center flex-1 min-w-0">
                 {getFileIcon(originalRow.itemType)}
                 <div className="ml-3 min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate">
-                    {originalRow.name}
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium truncate">
+                      {originalRow.name}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => rerunExtractionAction(row.original.id)}
+                      className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Rerun extraction"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                    </Button>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-xs text-muted-foreground">
@@ -447,7 +523,13 @@ export const DataGrid = ({
 
             // Convert value to string for React display
             if (value === null || value === undefined) return ''
-            if (typeof value === 'string') return value
+            if (typeof value === 'string') {
+              // Format dates for display
+              if (column.type === ExtractionFieldType.DATE) {
+                return formatDateValue(value)
+              }
+              return value
+            }
             if (typeof value === 'number') return value.toString()
             if (typeof value === 'boolean') return value ? 'Yes' : 'No'
             if (typeof value === 'object') {
@@ -614,6 +696,7 @@ export const DataGrid = ({
     handleRemoveColumn,
     handleRemoveRow,
     collection.fields.length,
+    rerunExtractionAction,
   ])
 
   // Create table instance
@@ -704,13 +787,28 @@ export const DataGrid = ({
       label: newColumn.label.trim(),
       type: newColumn.type,
       description: newColumn.description.trim() || undefined,
+      customPrompt: newColumn.customPrompt.trim() || undefined,
       allowedValues:
         newColumn.type === ExtractionFieldType.SELECT
           ? newColumn.allowedValues
           : undefined,
     }
 
-    setColumns([...columns, column])
+    const newColumns = [...columns, column]
+    setColumns(newColumns)
+
+    // Update collection fields in database
+    updateCollectionFieldsAction({
+      collectionId: collection.id,
+      fields: newColumns.map((col) => ({
+        id: col.id,
+        label: col.label,
+        type: col.type,
+        description: col.description,
+        prompt: col.customPrompt,
+        allowedValues: col.allowedValues,
+      })),
+    })
 
     // Add empty data for this column to all existing rows
     setRows(
@@ -744,6 +842,7 @@ export const DataGrid = ({
       type: ExtractionFieldType.TEXT,
       allowedValues: [],
       description: '',
+      customPrompt: '',
     })
     setIsAddColumnDialogOpen(false)
   }
@@ -756,9 +855,62 @@ export const DataGrid = ({
   const handleSaveColumnEdit = () => {
     if (!editingColumn) return
 
-    setColumns(
-      columns.map((col) => (col.id === editingColumn.id ? editingColumn : col)),
+    const oldColumnId = editingColumn.id
+    const newColumnId = editingColumn.label.toLowerCase().replace(/\s+/g, '_')
+    const updatedColumn = { ...editingColumn, id: newColumnId }
+
+    const newColumns = columns.map((col) =>
+      col.id === oldColumnId ? updatedColumn : col,
     )
+    setColumns(newColumns)
+
+    // Update extracted data to use new column ID if it changed
+    if (oldColumnId !== newColumnId) {
+      setRows((prevRows) =>
+        prevRows.map((row) => {
+          const extractedData = row.extractedData || {
+            id: '',
+            documentId: row.id,
+            data: [],
+            fields: [],
+            createdAt: new Date(),
+          }
+          
+          // Update data entries to use new column ID
+          const updatedData = (extractedData.data || []).map((entry) => {
+            if (Object.prototype.hasOwnProperty.call(entry, oldColumnId)) {
+              const value = entry[oldColumnId]
+              const newEntry = { ...entry }
+              delete newEntry[oldColumnId]
+              newEntry[newColumnId] = value
+              return newEntry
+            }
+            return entry
+          })
+
+          return {
+            ...row,
+            extractedData: {
+              ...extractedData,
+              data: updatedData,
+            },
+          }
+        }),
+      )
+    }
+
+    // Update collection fields in database
+    updateCollectionFieldsAction({
+      collectionId: collection.id,
+      fields: newColumns.map((col) => ({
+        id: col.id,
+        label: col.label,
+        type: col.type,
+        description: col.description,
+        prompt: col.customPrompt,
+        allowedValues: col.allowedValues,
+      })),
+    })
 
     setIsEditColumnDialogOpen(false)
     setEditingColumn(null)
@@ -781,6 +933,31 @@ export const DataGrid = ({
       .split('_')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ')
+  }
+
+  const formatDateValue = (value: string) => {
+    if (!value) return ''
+
+    try {
+      // Try parsing as ISO date string first
+      let date = parseISO(value)
+
+      // If that fails, try creating a new Date object
+      if (!isValid(date)) {
+        date = new Date(value)
+      }
+
+      // If still not valid, return the original value
+      if (!isValid(date)) {
+        return value
+      }
+
+      // Format as "Jan 15, 2024"
+      return format(date, 'MMM dd, yyyy')
+    } catch {
+      // If any error occurs, return the original value
+      return value
+    }
   }
 
   const getStatusBadge = (status: DocumentStatus | null) => {
@@ -882,7 +1059,7 @@ export const DataGrid = ({
           <div className="h-full overflow-auto">
             <div className="relative">
               {/* Main Table */}
-              <table className="w-full">
+              <table className="w-full border-separate">
                 <thead className="sticky top-0 bg-muted/50 border-b z-20">
                   {table.getHeaderGroups().map((headerGroup) => (
                     <tr key={headerGroup.id}>
@@ -890,9 +1067,7 @@ export const DataGrid = ({
                         <th
                           key={header.id}
                           className={`h-12 px-4 text-left align-middle font-medium text-muted-foreground border-r last:border-r-0 ${
-                            index === 0
-                              ? 'sticky left-0 bg-muted z-30 shadow-[2px_0_4px_rgba(0,0,0,0.1)] dark:shadow-[2px_0_4px_rgba(0,0,0,0.3)]'
-                              : ''
+                            index === 0 ? 'sticky left-0 bg-muted z-30' : ''
                           }`}
                           style={{
                             width: header.getSize(),
@@ -944,7 +1119,7 @@ export const DataGrid = ({
                             key={cell.id}
                             className={`px-4 align-middle border-r last:border-r-0 ${
                               index === 0
-                                ? 'sticky left-0 bg-background z-10 shadow-[2px_0_4px_rgba(0,0,0,0.1)] dark:shadow-[2px_0_4px_rgba(0,0,0,0.3)]'
+                                ? 'sticky left-0 bg-background z-10'
                                 : ''
                             }`}
                             style={{
@@ -1006,6 +1181,19 @@ export const DataGrid = ({
                 }
                 placeholder="Enter column description"
                 rows={2}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="columnPrompt">Custom Prompt (optional)</Label>
+              <Textarea
+                id="columnPrompt"
+                value={newColumn.customPrompt}
+                onChange={(e) =>
+                  setNewColumn({ ...newColumn, customPrompt: e.target.value })
+                }
+                placeholder="Enter custom extraction prompt for this field"
+                rows={3}
               />
             </div>
 
@@ -1115,6 +1303,24 @@ export const DataGrid = ({
                   }
                   placeholder="Enter column description"
                   rows={2}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="editColumnPrompt">
+                  Custom Prompt (optional)
+                </Label>
+                <Textarea
+                  id="editColumnPrompt"
+                  value={editingColumn.customPrompt || ''}
+                  onChange={(e) =>
+                    setEditingColumn({
+                      ...editingColumn,
+                      customPrompt: e.target.value,
+                    })
+                  }
+                  placeholder="Enter custom extraction prompt for this field"
+                  rows={3}
                 />
               </div>
 

@@ -10,6 +10,7 @@ import {
 import { mapDocumentsToDocumentItems } from './mapper/document-mapper'
 import { ActionError, authClient } from './safe-action'
 import extractedDataStore from '../db/extracted-data-store'
+import { ExtractionField } from '@/lib/consts'
 
 /**
  * Get all collections for a user
@@ -138,4 +139,48 @@ export const deleteCollection = authClient
       success: true,
       id: collection.id,
     }
+  })
+
+/**
+ * Update collection fields
+ * @param ctx - The context
+ * @param parsedInput - The parsed input containing collection ID and new fields
+ * @returns The updated collection
+ */
+export const updateCollectionFields = authClient
+  .inputSchema(
+    z.object({
+      collectionId: z.string(),
+      fields: z.array(z.object({
+        id: z.string(),
+        label: z.string(),
+        type: z.string(),
+        description: z.string().optional(),
+        prompt: z.string().optional(),
+        allowedValues: z.array(z.string()).optional(),
+      }))
+    }),
+  )
+  .action(async ({ ctx, parsedInput }) => {
+    const { collectionId, fields } = parsedInput
+    const { dbUser } = ctx
+
+    const collection = await collectionStore.getCollectionById(collectionId)
+
+    if (!collection) {
+      throw ActionError.NotFound('Collection not found')
+    }
+
+    if (collection.userId !== dbUser.id) {
+      throw ActionError.Forbidden(
+        'You are not allowed to update this collection',
+      )
+    }
+
+    // Update the collection with new fields
+    const updatedCollection = await collectionStore.updateCollection(collectionId, {
+      fields: fields as ExtractionField[],
+    })
+
+    return mapCollectionToCollectionDTO(updatedCollection)
   })
