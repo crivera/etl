@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod/v4'
 
 export enum Role {
   ANNONYMOUS = 0,
@@ -33,15 +33,23 @@ export enum ExtractionFieldType {
   ADDRESS = 'address',
   CURRENCY = 'currency',
   CHECKBOX = 'checkbox',
+  OBJECT_LIST = 'object_list',
 }
+
+export const ObjectFieldSchema = z.object({
+  type: z.enum(ExtractionFieldType),
+  label: z.string(),
+  description: z.string().optional(),
+})
 
 export const ExtractionFieldSchema = z.object({
   id: z.string(),
   label: z.string(),
-  type: z.nativeEnum(ExtractionFieldType),
+  type: z.enum(ExtractionFieldType),
   description: z.string().optional(),
   customPrompt: z.string().optional(),
   allowedValues: z.array(z.string()).optional(),
+  objectSchema: z.record(z.string(), ObjectFieldSchema).optional(),
 })
 
 export const TemplateMetadataSchema = z.object({
@@ -50,6 +58,7 @@ export const TemplateMetadataSchema = z.object({
 
 export type TemplateMetadata = z.infer<typeof TemplateMetadataSchema>
 
+export type ObjectField = z.infer<typeof ObjectFieldSchema>
 export type ExtractionField = z.infer<typeof ExtractionFieldSchema>
 
 export const OcrDocumentSchema = z.object({
@@ -217,6 +226,16 @@ export const fieldTypes: {
     label: 'Checkbox',
     description: 'True/False values',
   },
+  {
+    value: ExtractionFieldType.LIST,
+    label: 'List',
+    description: 'Array of simple values',
+  },
+  {
+    value: ExtractionFieldType.OBJECT_LIST,
+    label: 'Object List',
+    description: 'Array of structured objects',
+  },
 ]
 
 /**
@@ -249,6 +268,12 @@ export const getFieldTypeColor = (type: ExtractionFieldType) => {
       return 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400'
     case 'address':
       return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400'
+    case 'list':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+    case 'object_list':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+    case 'checkbox':
+      return 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400'
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
   }

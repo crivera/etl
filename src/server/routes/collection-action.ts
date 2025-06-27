@@ -10,7 +10,7 @@ import {
 import { mapDocumentsToDocumentItems } from './mapper/document-mapper'
 import { ActionError, authClient } from './safe-action'
 import extractedDataStore from '../db/extracted-data-store'
-import { ExtractionField } from '@/lib/consts'
+import { ExtractionField, ObjectFieldSchema } from '@/lib/consts'
 
 /**
  * Get all collections for a user
@@ -65,7 +65,7 @@ export const getDocumentsForCollection = authClient
   .inputSchema(z.string())
   .action(async ({ ctx, parsedInput }) => {
     const collectionId = parsedInput
-    
+
     // Verify user has access to this collection
     const collection = await collectionStore.getCollectionById(collectionId)
     if (!collection) {
@@ -75,7 +75,8 @@ export const getDocumentsForCollection = authClient
       throw ActionError.Forbidden('You are not allowed to view this collection')
     }
 
-    const documents = await documentStore.getDocumentsByCollectionId(collectionId)
+    const documents =
+      await documentStore.getDocumentsByCollectionId(collectionId)
     const extractedData = await extractedDataStore.getExtractedDataForDocuments(
       documents.map((document) => document.id),
     )
@@ -151,14 +152,17 @@ export const updateCollectionFields = authClient
   .inputSchema(
     z.object({
       collectionId: z.string(),
-      fields: z.array(z.object({
-        id: z.string(),
-        label: z.string(),
-        type: z.string(),
-        description: z.string().optional(),
-        prompt: z.string().optional(),
-        allowedValues: z.array(z.string()).optional(),
-      }))
+      fields: z.array(
+        z.object({
+          id: z.string(),
+          label: z.string(),
+          type: z.string(),
+          description: z.string().optional(),
+          customPrompt: z.string().optional(),
+          allowedValues: z.array(z.string()).optional(),
+          objectSchema: z.record(z.string(), ObjectFieldSchema).optional(),
+        }),
+      ),
     }),
   )
   .action(async ({ ctx, parsedInput }) => {
@@ -178,9 +182,12 @@ export const updateCollectionFields = authClient
     }
 
     // Update the collection with new fields
-    const updatedCollection = await collectionStore.updateCollection(collectionId, {
-      fields: fields as ExtractionField[],
-    })
+    const updatedCollection = await collectionStore.updateCollection(
+      collectionId,
+      {
+        fields: fields as ExtractionField[],
+      },
+    )
 
     return mapCollectionToCollectionDTO(updatedCollection)
   })

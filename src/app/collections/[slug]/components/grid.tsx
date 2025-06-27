@@ -39,6 +39,7 @@ import {
   DocumentStatus,
   ExtractionField,
   ExtractionFieldType,
+  ObjectField,
 } from '@/lib/consts'
 
 import {
@@ -75,7 +76,6 @@ import {
   MoreVertical,
   Plus,
   RefreshCw,
-  Settings,
   Trash2,
   CheckCircle,
   XCircle,
@@ -85,14 +85,16 @@ import { useMemo, useRef, useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
-import { format, isValid, parseISO } from 'date-fns'
+import { formatDateValue } from '@/lib/utils'
 
 const ListDisplay = ({
   items,
   fieldLabel,
+  objectSchema,
 }: {
   items: unknown[]
   fieldLabel: string
+  objectSchema?: Record<string, ObjectField>
 }) => {
   if (!items || items.length === 0)
     return <span className="text-muted-foreground italic">Empty</span>
@@ -122,22 +124,44 @@ const ListDisplay = ({
           <div className="font-medium text-xs text-muted-foreground mb-2">
             Item {index + 1}
           </div>
-          {entries.map(([key, value]) => (
-            <div key={key} className="flex gap-2">
-              <span className="font-medium text-xs text-muted-foreground min-w-0 flex-shrink-0">
-                {key}:
-              </span>
-              <span className="text-xs break-words flex-1">
-                {value === null || value === undefined ? (
-                  <span className="text-muted-foreground italic">null</span>
-                ) : typeof value === 'object' ? (
-                  JSON.stringify(value)
-                ) : (
-                  String(value)
-                )}
-              </span>
-            </div>
-          ))}
+          {entries.map(([key, value]) => {
+            const fieldSchema = objectSchema?.[key]
+            const displayLabel = fieldSchema?.label || key
+
+            return (
+              <div key={key} className="flex gap-2">
+                <span className="font-medium text-xs text-muted-foreground min-w-0 flex-shrink-0">
+                  {displayLabel}:
+                </span>
+                <span className="text-xs break-words flex-1">
+                  {value === null || value === undefined ? (
+                    <span className="text-muted-foreground italic">null</span>
+                  ) : typeof value === 'object' ? (
+                    JSON.stringify(value)
+                  ) : fieldSchema?.type === 'date' &&
+                    typeof value === 'string' ? (
+                    formatDateValue(value)
+                  ) : fieldSchema?.type === 'currency' &&
+                    typeof value === 'string' ? (
+                    value.startsWith('$') ? (
+                      value
+                    ) : (
+                      `$${value}`
+                    )
+                  ) : fieldSchema?.type === 'checkbox' &&
+                    typeof value === 'boolean' ? (
+                    value ? (
+                      'Yes'
+                    ) : (
+                      'No'
+                    )
+                  ) : (
+                    String(value)
+                  )}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )
     }
@@ -209,6 +233,7 @@ export const DataGrid = ({
     allowedValues: [] as string[],
     description: '',
     customPrompt: '',
+    objectSchema: {} as Record<string, ObjectField>,
   })
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -394,8 +419,9 @@ export const DataGrid = ({
           label: col.label,
           type: col.type,
           description: col.description,
-          prompt: col.customPrompt,
+          customPrompt: col.customPrompt,
           allowedValues: col.allowedValues,
+          objectSchema: col.objectSchema,
         })),
       })
 
@@ -462,15 +488,6 @@ export const DataGrid = ({
                     <div className="text-sm font-medium truncate">
                       {originalRow.name}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => rerunExtractionAction(row.original.id)}
-                      className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Rerun extraction"
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                    </Button>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-xs text-muted-foreground">
@@ -491,6 +508,12 @@ export const DataGrid = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => rerunExtractionAction(row.original.id)}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Rerun extraction
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handleRemoveRow(row.original.id)}
                     className="text-destructive"
@@ -551,7 +574,7 @@ export const DataGrid = ({
                   className="h-auto p-0 font-medium text-sm hover:bg-transparent flex items-center"
                 >
                   <span className="truncate flex-1 text-left">
-                    {formatFieldName(column.label)}
+                    {column.label}
                   </span>
                   <div className="ml-2 flex items-center">
                     {col.getIsSorted() === 'asc' ? (
@@ -568,26 +591,10 @@ export const DataGrid = ({
                     variant="ghost"
                     size="icon"
                     onClick={() => handleEditColumn(column)}
-                    className="h-6 w-6 mr-1"
+                    className="h-6 w-6"
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Settings className="h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => handleRemoveColumn(column.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Remove Column
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </div>
             ),
@@ -597,8 +604,12 @@ export const DataGrid = ({
                 editingCell?.rowId === row.original.id &&
                 editingCell?.columnId === col.id
 
-              // Special handling for LIST field types
-              if (column.type === ExtractionFieldType.LIST && !isEditing) {
+              // Special handling for LIST and OBJECT field types
+              if (
+                (column.type === ExtractionFieldType.LIST ||
+                  column.type === ExtractionFieldType.OBJECT_LIST) &&
+                !isEditing
+              ) {
                 // Find the original data entry to get the raw array value
                 const dataEntry = row.original.extractedData?.data.find(
                   (data) =>
@@ -611,7 +622,12 @@ export const DataGrid = ({
                     <div className="h-8 px-2 flex items-center w-full">
                       <ListDisplay
                         items={rawValue}
-                        fieldLabel={formatFieldName(column.label)}
+                        fieldLabel={column.label}
+                        objectSchema={
+                          column.type === ExtractionFieldType.OBJECT_LIST
+                            ? column.objectSchema
+                            : undefined
+                        }
                       />
                     </div>
                   )
@@ -693,7 +709,6 @@ export const DataGrid = ({
     rows,
     columnHelper,
     handleCellSave,
-    handleRemoveColumn,
     handleRemoveRow,
     collection.fields.length,
     rerunExtractionAction,
@@ -792,6 +807,11 @@ export const DataGrid = ({
         newColumn.type === ExtractionFieldType.SELECT
           ? newColumn.allowedValues
           : undefined,
+      objectSchema:
+        newColumn.type === ExtractionFieldType.OBJECT_LIST &&
+        Object.keys(newColumn.objectSchema).length > 0
+          ? newColumn.objectSchema
+          : undefined,
     }
 
     const newColumns = [...columns, column]
@@ -805,8 +825,9 @@ export const DataGrid = ({
         label: col.label,
         type: col.type,
         description: col.description,
-        prompt: col.customPrompt,
+        customPrompt: col.customPrompt,
         allowedValues: col.allowedValues,
+        objectSchema: col.objectSchema,
       })),
     })
 
@@ -843,6 +864,7 @@ export const DataGrid = ({
       allowedValues: [],
       description: '',
       customPrompt: '',
+      objectSchema: {},
     })
     setIsAddColumnDialogOpen(false)
   }
@@ -875,7 +897,7 @@ export const DataGrid = ({
             fields: [],
             createdAt: new Date(),
           }
-          
+
           // Update data entries to use new column ID
           const updatedData = (extractedData.data || []).map((entry) => {
             if (Object.prototype.hasOwnProperty.call(entry, oldColumnId)) {
@@ -907,8 +929,9 @@ export const DataGrid = ({
         label: col.label,
         type: col.type,
         description: col.description,
-        prompt: col.customPrompt,
+        customPrompt: col.customPrompt,
         allowedValues: col.allowedValues,
+        objectSchema: col.objectSchema,
       })),
     })
 
@@ -925,38 +948,6 @@ export const DataGrid = ({
       return <FileSpreadsheet className="h-5 w-5 text-green-500" />
     } else {
       return <FileText className="h-5 w-5 text-gray-500" />
-    }
-  }
-
-  const formatFieldName = (fieldName: string) => {
-    return fieldName
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ')
-  }
-
-  const formatDateValue = (value: string) => {
-    if (!value) return ''
-
-    try {
-      // Try parsing as ISO date string first
-      let date = parseISO(value)
-
-      // If that fails, try creating a new Date object
-      if (!isValid(date)) {
-        date = new Date(value)
-      }
-
-      // If still not valid, return the original value
-      if (!isValid(date)) {
-        return value
-      }
-
-      // Format as "Jan 15, 2024"
-      return format(date, 'MMM dd, yyyy')
-    } catch {
-      // If any error occurs, return the original value
-      return value
     }
   }
 
@@ -1217,6 +1208,7 @@ export const DataGrid = ({
                   <SelectItem value="date">Date</SelectItem>
                   <SelectItem value="currency">Currency</SelectItem>
                   <SelectItem value="list">List</SelectItem>
+                  <SelectItem value="object">Object List</SelectItem>
                   <SelectItem value="select">Select (Dropdown)</SelectItem>
                 </SelectContent>
               </Select>
@@ -1344,6 +1336,7 @@ export const DataGrid = ({
                     <SelectItem value="date">Date</SelectItem>
                     <SelectItem value="currency">Currency</SelectItem>
                     <SelectItem value="list">List</SelectItem>
+                    <SelectItem value="object">Object List</SelectItem>
                     <SelectItem value="select">Select (Dropdown)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -1378,13 +1371,28 @@ export const DataGrid = ({
           )}
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditColumnDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSaveColumnEdit}>Save Changes</Button>
+            <div className="flex justify-between w-full">
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (editingColumn) {
+                    handleRemoveColumn(editingColumn.id)
+                    setIsEditColumnDialogOpen(false)
+                  }
+                }}
+              >
+                Remove Column
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditColumnDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveColumnEdit}>Save Changes</Button>
+              </div>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

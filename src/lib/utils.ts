@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { ExtractionFieldType } from './consts'
+import { format, isValid, parseISO } from 'date-fns'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -96,4 +97,29 @@ export function inferExtractionFieldType(value: unknown): ExtractionFieldType {
     return ExtractionFieldType.TEXT
   }
   return ExtractionFieldType.TEXT
+}
+
+export const formatDateValue = (value: string) => {
+  if (!value) return ''
+
+  try {
+    // Try parsing as ISO date string first
+    let date = parseISO(value)
+
+    // If that fails, try creating a new Date object
+    if (!isValid(date)) {
+      date = new Date(value)
+    }
+
+    // If still not valid, return the original value
+    if (!isValid(date)) {
+      return value
+    }
+
+    // Format as "Jan 15, 2024"
+    return format(date, 'MMM dd, yyyy')
+  } catch {
+    // If any error occurs, return the original value
+    return value
+  }
 }

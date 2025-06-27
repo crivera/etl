@@ -30,10 +30,29 @@ export async function extractDataFromText(
         You are an expert data extraction AI.
         Your goal is to accurately identify and extract the following details from the unstructured text provided below:
 
-        ${fields.map((field, index) => {
-          const description = field.customPrompt || field.description || 'Extract this field value'
-          return `${index + 1}. **${field.label}**: ${description}`
-        }).join('\n')}
+        ${fields
+          .map((field, index) => {
+            const description =
+              field.customPrompt ||
+              field.description ||
+              'Extract this field value'
+            let fieldDescription = `${index + 1}. **${field.label}**: ${description}`
+
+            if (field.type === 'object_list' && field.objectSchema) {
+              fieldDescription +=
+                '\n   This should be an array of objects with the following structure:'
+              Object.entries(field.objectSchema).forEach(
+                ([key, objectField]) => {
+                  fieldDescription += `\n   - ${key} (${objectField.type}): ${objectField.description || objectField.label}`
+                },
+              )
+            } else if (field.type === 'list') {
+              fieldDescription += ' (Return as an array of values)'
+            }
+
+            return fieldDescription
+          })
+          .join('\n')}
 
         Present the extracted information as a single JSON object. Use the following keys:
         ${fields.map((field) => `- "${field.id}"`).join('\n')}
@@ -85,10 +104,29 @@ export async function extractDataFromFile(
               You are an expert data extraction AI.
               Your goal is to accurately identify and extract the following details from the document provided:
 
-              ${fields.map((field, index) => {
-                const description = field.customPrompt || field.description || 'Extract this field value'
-                return `${index + 1}. **${field.label}**: ${description}`
-              }).join('\n')}
+              ${fields
+                .map((field, index) => {
+                  const description =
+                    field.customPrompt ||
+                    field.description ||
+                    'Extract this field value'
+                  let fieldDescription = `${index + 1}. **${field.label}**: ${description}`
+
+                  if (field.type === 'object_list' && field.objectSchema) {
+                    fieldDescription +=
+                      '\n   This should be an array of objects with the following structure:'
+                    Object.entries(field.objectSchema).forEach(
+                      ([key, objectField]) => {
+                        fieldDescription += `\n   - ${key} (${objectField.type}): ${objectField.description || objectField.label}`
+                      },
+                    )
+                  } else if (field.type === 'list') {
+                    fieldDescription += ' (Return as an array of values)'
+                  }
+
+                  return fieldDescription
+                })
+                .join('\n')}
 
               Present the extracted information as a single JSON object. Use the following keys:
               ${fields.map((field) => `- "${field.id}"`).join('\n')}
@@ -157,8 +195,50 @@ function createExtractionSchema(fields: ExtractionField[]) {
       case 'date':
         schemaObject[field.id] = z.string().datetime().optional()
         break
+      case 'currency':
+        schemaObject[field.id] = z.string().optional()
+        break
+      case 'checkbox':
+        schemaObject[field.id] = z.boolean().optional()
+        break
       case 'list':
         schemaObject[field.id] = z.array(z.string()).optional()
+        break
+      case 'object_list':
+        if (field.objectSchema) {
+          const objectSchemaObj: Record<string, z.ZodTypeAny> = {}
+
+          for (const [key, objectField] of Object.entries(field.objectSchema)) {
+            switch (objectField.type) {
+              case 'text':
+              case 'phone':
+              case 'email':
+              case 'address':
+                objectSchemaObj[key] = z.string().optional()
+                break
+              case 'number':
+                objectSchemaObj[key] = z.number().optional()
+                break
+              case 'date':
+                objectSchemaObj[key] = z.string().datetime().optional()
+                break
+              case 'currency':
+                objectSchemaObj[key] = z.string().optional()
+                break
+              case 'checkbox':
+                objectSchemaObj[key] = z.boolean().optional()
+                break
+              default:
+                objectSchemaObj[key] = z.string().optional()
+                break
+            }
+          }
+
+          schemaObject[field.id] = z.array(z.object(objectSchemaObj)).optional()
+        } else {
+          // Fallback to array of any objects if no schema defined
+          schemaObject[field.id] = z.array(z.record(z.any())).optional()
+        }
         break
     }
   }
