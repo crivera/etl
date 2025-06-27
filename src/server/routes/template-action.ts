@@ -7,6 +7,8 @@ import {
   TemplateMetadataSchema,
 } from '@/lib/consts'
 import { createId } from '@paralleldrive/cuid2'
+import { generate } from '@pdfme/generator'
+import { checkbox, date, text } from '@pdfme/schemas'
 import { z } from 'zod/v4'
 import templateStore from '../db/template-store'
 import {
@@ -14,8 +16,6 @@ import {
   mapTemplateToTemplateDTO,
 } from './mapper/template-mapper'
 import { ActionError, authClient } from './safe-action'
-import { generate } from '@pdfme/generator'
-import { checkbox, date, text } from '@pdfme/schemas'
 
 const BUCKET_NAME = `templates-${env.NODE_ENV}`
 
@@ -57,8 +57,8 @@ export const deleteTemplate = authClient
  */
 export const getTamplates = authClient
   .inputSchema(z.object({ text: z.string().optional() }))
-  .action(async ({ ctx, parsedInput }) => {
-    const { text } = parsedInput
+  .action(async ({ ctx }) => {
+    // const { text } = parsedInput
 
     const templates = await templateStore.getAllTemplatesForUser(ctx.dbUser.id)
     return mapTemplatesToTemplateDTOs(templates)

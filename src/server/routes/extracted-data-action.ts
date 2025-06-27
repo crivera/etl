@@ -254,10 +254,7 @@ export const extractUnknownDocumentData = systemClient
         })
       }
 
-      const updatedCollection = await collectionStore.updateCollection(
-        collectionId,
-        { fields },
-      )
+      await collectionStore.updateCollection(collectionId, { fields })
 
       // Store extracted data
       await extractedDataStore.upsertExtractedData({
