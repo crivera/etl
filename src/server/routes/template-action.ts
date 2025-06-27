@@ -7,7 +7,7 @@ import {
   TemplateMetadataSchema,
 } from '@/lib/consts'
 import { createId } from '@paralleldrive/cuid2'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 import templateStore from '../db/template-store'
 import {
   mapTemplatesToTemplateDTOs,
@@ -59,7 +59,7 @@ export const getTamplates = authClient
   .inputSchema(z.object({ text: z.string().optional() }))
   .action(async ({ ctx, parsedInput }) => {
     const { text } = parsedInput
-    console.log('text', text)
+
     const templates = await templateStore.getAllTemplatesForUser(ctx.dbUser.id)
     return mapTemplatesToTemplateDTOs(templates)
   })
@@ -190,7 +190,10 @@ export const generateDocument = authClient
   .inputSchema(
     z.object({
       templateId: z.string(),
-      data: z.record(z.union([z.string(), z.number(), z.boolean()])),
+      data: z.record(
+        z.string(),
+        z.union([z.string(), z.number(), z.boolean()]),
+      ),
     }),
   )
   .action(async ({ ctx, parsedInput }) => {

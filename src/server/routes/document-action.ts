@@ -5,25 +5,26 @@ import { env } from '@/env'
 import {
   BreadcrumbItem,
   DocumentStatus,
+  ExtractDocumentSchema,
+  ExtractUnknownDocumentSchema,
   ItemType,
   OcrDocumentSchema,
-  ExtractUnknownDocumentSchema,
   SortDirection,
   SortDirectionSchema,
 } from '@/lib/consts'
 import { createId } from '@paralleldrive/cuid2'
-import { z } from 'zod'
 import { zfd } from 'zod-form-data'
+import { z } from 'zod/v4'
 import ocr from '../ai/ocr'
+import collectionStore from '../db/collection-store'
 import documentStore from '../db/document-store'
+import userStore from '../db/user-store'
+import { documentEvents } from '../realtime/document-events'
 import {
   mapDocumentsToDocumentItems,
   mapDocumentToDocumentItem,
 } from './mapper/document-mapper'
 import { ActionError, authClient, systemClient } from './safe-action'
-import userStore from '../db/user-store'
-import collectionStore from '../db/collection-store'
-import { documentEvents } from '../realtime/document-events'
 
 const sortFieldSchema = z.enum(['createdAt', 'updatedAt', 'name', 'status'])
 const BUCKET_NAME = `documents-${env.NODE_ENV}`
@@ -395,7 +396,9 @@ export const rerunExtraction = authClient
     }
 
     if (document.userId !== ctx.dbUser.id) {
-      throw ActionError.Forbidden('You are not allowed to rerun extraction for this document')
+      throw ActionError.Forbidden(
+        'You are not allowed to rerun extraction for this document',
+      )
     }
 
     if (document.itemType === 'FOLDER') {
@@ -405,17 +408,36 @@ export const rerunExtraction = authClient
     // Reset document status to trigger re-extraction
     await documentStore.updateDocument(id, {
       status: DocumentStatus.UPLOADED,
+      externalId: ctx.dbUser.externalId,
+      extractedText: document.extractedText, // Keep existing text to avoid losing it
     })
 
+    const collectionId = document.collectionId
+    if (!collectionId) {
+      throw ActionError.BadRequest('Document is not part of a collection')
+    }
+
+    const collection = await collectionStore.getCollectionById(collectionId)
+    if (
+      !collection ||
+      collection.userId !== ctx.dbUser.id ||
+      !collection.fields
+    ) {
+      throw ActionError.NotFound('Collection not found or not accessible')
+    }
+
     // Trigger OCR again (which will trigger extraction after completion)
-    fetch(`${BASE_URL}/api/v1/ocr`, {
+    fetch(`${BASE_URL}/api/v1/extract`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${env.SYSTEM_KEY}`,
       },
       body: JSON.stringify(
-        OcrDocumentSchema.parse({ documentId: id }),
+        ExtractDocumentSchema.parse({
+          documentId: id,
+          fields: collection.fields,
+        }),
       ),
     }).catch((err) => console.error('Failed to trigger OCR:', err))
 

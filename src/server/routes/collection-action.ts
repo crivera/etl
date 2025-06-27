@@ -1,16 +1,18 @@
 'use server'
 
+import { BASE_URL } from '@/app/robots'
+import { env } from '@/env'
+import { DocumentStatus, ExtractionFieldSchema, ExtractDocumentSchema } from '@/lib/consts'
 import { z } from 'zod/v4'
 import { default as collectionStore } from '../db/collection-store'
 import documentStore from '../db/document-store'
+import extractedDataStore from '../db/extracted-data-store'
 import {
   mapCollectionToCollectionDTO,
   mapCollectionsToCollectionDTOs,
 } from './mapper/collection-mapper'
 import { mapDocumentsToDocumentItems } from './mapper/document-mapper'
 import { ActionError, authClient } from './safe-action'
-import extractedDataStore from '../db/extracted-data-store'
-import { ExtractionField, ObjectFieldSchema } from '@/lib/consts'
 
 /**
  * Get all collections for a user
@@ -152,17 +154,7 @@ export const updateCollectionFields = authClient
   .inputSchema(
     z.object({
       collectionId: z.string(),
-      fields: z.array(
-        z.object({
-          id: z.string(),
-          label: z.string(),
-          type: z.string(),
-          description: z.string().optional(),
-          customPrompt: z.string().optional(),
-          allowedValues: z.array(z.string()).optional(),
-          objectSchema: z.record(z.string(), ObjectFieldSchema).optional(),
-        }),
-      ),
+      fields: z.array(ExtractionFieldSchema),
     }),
   )
   .action(async ({ ctx, parsedInput }) => {
@@ -185,9 +177,40 @@ export const updateCollectionFields = authClient
     const updatedCollection = await collectionStore.updateCollection(
       collectionId,
       {
-        fields: fields as ExtractionField[],
+        fields: fields,
       },
     )
+
+    // Get all documents in the collection that are ready for re-extraction
+    const documents = await documentStore.getDocumentsByCollectionId(collectionId)
+    const documentsToReExtract = documents.filter(
+      (doc) => 
+        doc.extractedText && 
+        doc.status === DocumentStatus.COMPLETED &&
+        doc.itemType === 'FILE'
+    )
+
+    // Trigger re-extraction for all eligible documents
+    if (documentsToReExtract.length > 0) {
+      // Fire-and-forget: trigger extraction for each document with new fields
+      documentsToReExtract.forEach((document) => {
+        fetch(`${BASE_URL}/api/v1/extract`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${env.SYSTEM_KEY}`,
+          },
+          body: JSON.stringify(
+            ExtractDocumentSchema.parse({
+              documentId: document.id,
+              fields,
+            }),
+          ),
+        }).catch((error) => {
+          console.error('Failed to trigger re-extraction for document:', document.id, error)
+        })
+      })
+    }
 
     return mapCollectionToCollectionDTO(updatedCollection)
   })

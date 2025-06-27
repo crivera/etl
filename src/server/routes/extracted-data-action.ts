@@ -94,7 +94,7 @@ export const extractDocumentData = systemClient
       fields,
     )
 
-    await extractedDataStore.createExtractedDataVersion({
+    await extractedDataStore.upsertExtractedData({
       documentId: document.id,
       data: extractedData,
       fields,
@@ -227,15 +227,9 @@ export const extractUnknownDocumentData = systemClient
         collectionId,
         { fields },
       )
-      console.log(
-        '✅ Collection updated successfully:',
-        updatedCollection?.id,
-        'fields count:',
-        updatedCollection?.fields?.length,
-      )
 
       // Store extracted data
-      await extractedDataStore.createExtractedDataVersion({
+      await extractedDataStore.upsertExtractedData({
         documentId: document.id,
         data: processedData,
         fields,

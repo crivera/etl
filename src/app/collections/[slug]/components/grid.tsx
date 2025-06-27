@@ -1208,7 +1208,7 @@ export const DataGrid = ({
                   <SelectItem value="date">Date</SelectItem>
                   <SelectItem value="currency">Currency</SelectItem>
                   <SelectItem value="list">List</SelectItem>
-                  <SelectItem value="object">Object List</SelectItem>
+                  <SelectItem value="object_list">Object List</SelectItem>
                   <SelectItem value="select">Select (Dropdown)</SelectItem>
                 </SelectContent>
               </Select>
@@ -1336,7 +1336,7 @@ export const DataGrid = ({
                     <SelectItem value="date">Date</SelectItem>
                     <SelectItem value="currency">Currency</SelectItem>
                     <SelectItem value="list">List</SelectItem>
-                    <SelectItem value="object">Object List</SelectItem>
+                    <SelectItem value="object_list">Object List</SelectItem>
                     <SelectItem value="select">Select (Dropdown)</SelectItem>
                   </SelectContent>
                 </Select>

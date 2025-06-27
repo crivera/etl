@@ -4,27 +4,24 @@ import { DocumentExtractionInsert, documentExtractions } from './schema'
 
 const extractedDataStore = {
   /**
-   * Create extracted data
+   * Upsert extracted data
    * @param extractedData - The extracted data to create
    * @returns The created extracted data
    */
-  async createExtractedDataVersion(data: DocumentExtractionInsert) {
+  async upsertExtractedData(data: DocumentExtractionInsert) {
+    const existing = await db.query.documentExtractions.findFirst({
+      where: eq(documentExtractions.documentId, data.documentId),
+    })
+    if (existing) {
+      // If data already exists, update it instead
+      const result = await db
+        .update(documentExtractions)
+        .set(data)
+        .where(eq(documentExtractions.id, existing.id))
+        .returning()
+      return result[0]
+    }
     const result = await db.insert(documentExtractions).values(data).returning()
-    return result[0]
-  },
-
-  /**
-   * Update extracted data
-   * @param id - The id of the extracted data
-   * @param data - The extracted data to update
-   * @returns The updated extracted data
-   */
-  async updateExtractedData(id: string, data: DocumentExtractionInsert) {
-    const result = await db
-      .update(documentExtractions)
-      .set(data)
-      .where(eq(documentExtractions.id, id))
-      .returning()
     return result[0]
   },
 

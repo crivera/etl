@@ -163,13 +163,13 @@ export async function extractDataFromUnknownFile(text: ExtractedText) {
         ${text.map((page) => page.text).join('\n')}
         </text>
       `
-  console.log(prompt)
+
   const { object } = await generateObject({
     model,
     schema: z.record(z.any()),
     prompt,
   })
-
+  console.log(object)
   return object
 }
 

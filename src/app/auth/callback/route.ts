@@ -3,7 +3,6 @@ import { createClient } from '@/server/supabase/server'
 import userStore from '@/server/db/user-store'
 
 export async function GET(request: Request) {
-  console.log('auth callback')
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   // if "next" is in param, use it as the redirect URL

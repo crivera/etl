@@ -111,7 +111,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
         linebreaks: true,
       })
       const tags = iModule.getAllStructuredTags()
-      console.log(tags)
+
       const updatedFields = new Set<ExtractionField>()
       for (const tag of tags) {
         let type = ExtractionFieldType.TEXT
