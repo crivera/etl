@@ -89,18 +89,49 @@ export const extractDocumentData = systemClient
       throw ActionError.BadRequest('Document has not been OCR`d')
     }
 
-    const extractedData = await extractDataFromText(
-      document.extractedText,
-      fields,
-    )
+    // Get user for real-time updates
+    const user = await userStore.getUserById(document.userId)
+    if (!user) {
+      throw ActionError.NotFound('User not found')
+    }
 
-    await extractedDataStore.upsertExtractedData({
-      documentId: document.id,
-      data: extractedData,
-      fields,
-    })
+    try {
+      // Set status to extracting
+      await documentStore.updateDocument(documentId, {
+        status: DocumentStatus.EXTRACTING,
+        extractedText: document.extractedText,
+        externalId: user.externalId,
+      })
 
-    return { success: true }
+      const extractedData = await extractDataFromText(
+        document.extractedText,
+        fields,
+      )
+
+      await extractedDataStore.upsertExtractedData({
+        documentId: document.id,
+        data: extractedData,
+        fields,
+      })
+
+      // Set status to completed
+      await documentStore.updateDocument(documentId, {
+        status: DocumentStatus.COMPLETED,
+        extractedText: document.extractedText,
+        externalId: user.externalId,
+      })
+
+      return { success: true }
+    } catch (error) {
+      // Set status to failed if extraction fails
+      await documentStore.updateDocument(documentId, {
+        status: DocumentStatus.FAILED,
+        extractedText: document.extractedText,
+        externalId: user.externalId,
+        error: error as Error,
+      })
+      throw error
+    }
   })
 
 /**
