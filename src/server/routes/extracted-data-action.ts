@@ -295,6 +295,65 @@ export const extractUnknownDocumentData = systemClient
   })
 
 /**
+ * Update extracted data for a specific document and field
+ * @param documentId - The id of the document
+ * @param fieldId - The id of the field to update
+ * @param value - The new value for the field
+ */
+export const updateExtractedData = authClient
+  .inputSchema(
+    z.object({
+      documentId: z.string(),
+      fieldId: z.string(),
+      value: z.unknown(),
+    }),
+  )
+  .action(async ({ ctx, parsedInput }) => {
+    const { documentId, fieldId, value } = parsedInput
+
+    const document = await documentStore.getDocumentById(documentId)
+
+    if (!document) {
+      throw ActionError.NotFound('Document not found')
+    }
+
+    if (document.userId !== ctx.dbUser.id) {
+      throw ActionError.Forbidden('You are not allowed to access this document')
+    }
+
+    // Get existing extracted data
+    const existingExtractedData = await extractedDataStore.getExtractedDataForDocument(documentId)
+
+    if (!existingExtractedData) {
+      throw ActionError.NotFound('No extracted data found for this document')
+    }
+
+    // Update the specific field in the data
+    const currentData = existingExtractedData.data as Record<string, unknown>[]
+    const updatedData = currentData.map((entry: Record<string, unknown>) => {
+      if (Object.prototype.hasOwnProperty.call(entry, fieldId)) {
+        return { ...entry, [fieldId]: value }
+      }
+      return entry
+    })
+
+    // If the field doesn't exist in any entry, add it to the first entry
+    const hasField = updatedData.some((entry: Record<string, unknown>) => Object.prototype.hasOwnProperty.call(entry, fieldId))
+    if (!hasField && updatedData.length > 0) {
+      updatedData[0] = { ...updatedData[0], [fieldId]: value }
+    }
+
+    // Update the extracted data
+    await extractedDataStore.upsertExtractedData({
+      documentId: document.id,
+      data: updatedData,
+      fields: existingExtractedData.fields,
+    })
+
+    return { success: true }
+  })
+
+/**
  * Infer field type from value
  * @param value - The value to infer type from
  * @returns The inferred field type

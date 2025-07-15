@@ -8,6 +8,7 @@ import type { DocumentCollectionDTO, DocumentItem, ExtractionField } from '@/lib
 import { DocumentStatus, ExtractionFieldType } from '@/lib/consts'
 import { uploadFiles, deleteDocument, rerunExtraction } from '@/server/routes/document-action'
 import { getDocumentsForCollection, updateCollectionFields } from '@/server/routes/collection-action'
+import { updateExtractedData } from '@/server/routes/extracted-data-action'
 import { getColumnId, createEmptyExtractedData } from './grid-utils'
 import type { EditingCell, NewColumn } from './grid-types'
 
@@ -152,21 +153,64 @@ export const useGrid = (initialCollection: DocumentCollectionDTO, initialDocumen
     },
   )
 
-  const handleCellSave = useCallback(() => {
+  const { execute: updateExtractedDataAction } = useAction(updateExtractedData, {
+    onSuccess: () => {
+      toast.success('Cell updated successfully')
+    },
+    onError: ({ error }) => {
+      toast.error(
+        error.serverError?.message || 'Failed to update cell',
+      )
+    },
+  })
+
+    const handleCellSave = useCallback(() => {
     if (!editingCell) return
 
+    // Find the current value in the data
+    const currentRow = rows.find((row) => row.id === editingCell.rowId)
+    if (!currentRow) return
+
+    const extractedData = currentRow.extractedData || createEmptyExtractedData(currentRow.id)
+    const existingEntry = (extractedData.data || []).find(
+      (entry) => Object.prototype.hasOwnProperty.call(entry, editingCell.columnId),
+    )
+    const currentValue = existingEntry ? existingEntry[editingCell.columnId] : ''
+
+    // Only update if the value has actually changed
+    if (currentValue !== editValue) {
+      // Update the database
+      updateExtractedDataAction({
+        documentId: editingCell.rowId,
+        fieldId: editingCell.columnId,
+        value: editValue,
+      })
+    }
+
+    // Update local state
     setRows(
       rows.map((row) => {
         if (row.id !== editingCell.rowId) return row
         // Ensure extractedData exists
         const extractedData = row.extractedData || createEmptyExtractedData(row.id)
-        // Remove any existing entry for this column
-        const filteredData = (extractedData.data || []).filter(
-          (entry) =>
-            !Object.prototype.hasOwnProperty.call(entry, editingCell.columnId),
+        // Find existing entry with this column or create new one
+        const existingEntryIndex = (extractedData.data || []).findIndex(
+          (entry) => Object.prototype.hasOwnProperty.call(entry, editingCell.columnId),
         )
-        // Add the new value
-        const newData = [...filteredData, { [editingCell.columnId]: editValue }]
+
+        let newData = [...(extractedData.data || [])]
+        if (existingEntryIndex >= 0) {
+          // Update existing entry
+          newData[existingEntryIndex] = { ...newData[existingEntryIndex], [editingCell.columnId]: editValue }
+        } else {
+          // Add to first entry or create new entry
+          if (newData.length > 0) {
+            newData[0] = { ...newData[0], [editingCell.columnId]: editValue }
+          } else {
+            newData = [{ [editingCell.columnId]: editValue }]
+          }
+        }
+
         return {
           ...row,
           extractedData: {
@@ -179,7 +223,7 @@ export const useGrid = (initialCollection: DocumentCollectionDTO, initialDocumen
 
     setEditingCell(null)
     setEditValue('')
-  }, [editingCell, editValue, rows])
+  }, [editingCell, editValue, rows, updateExtractedDataAction])
 
   const handleRemoveRow = useCallback(
     (rowId: string) => {
@@ -460,5 +504,6 @@ export const useGrid = (initialCollection: DocumentCollectionDTO, initialDocumen
     handleFileChange,
     handleFilesUpload,
     rerunExtractionAction,
+    updateExtractedDataAction,
   }
 }
