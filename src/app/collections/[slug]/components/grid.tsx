@@ -268,8 +268,9 @@ export const DataGrid = ({ initialCollection, initialDocuments }: GridProps) => 
 
               if (isEditing) {
                 if (
-                  column.type === ExtractionFieldType.TEXT &&
-                  column.allowedValues
+                  (column.type === ExtractionFieldType.LIST || column.type === ExtractionFieldType.TEXT) &&
+                  column.allowedValues &&
+                  column.allowedValues.length > 0
                 ) {
                   return (
                     <Select value={editValue} onValueChange={setEditValue}>

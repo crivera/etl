@@ -21,6 +21,7 @@ import {
 import { Textarea } from '@/app/components/ui/textarea'
 import { ExtractionFieldType } from '@/lib/consts'
 import type { ExtractionField } from '@/lib/consts'
+import { AllowedValuesInput } from './allowed-values-input'
 
 interface EditColumnDialogProps {
   open: boolean
@@ -122,35 +123,22 @@ export const EditColumnDialog = ({
                 <SelectItem value="currency">Currency</SelectItem>
                 <SelectItem value="list">List</SelectItem>
                 <SelectItem value="object_list">Object List</SelectItem>
-                <SelectItem value="select">Select (Dropdown)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {editingColumn.type === ExtractionFieldType.SELECT && (
-            <div className="grid gap-2">
-              <Label htmlFor="editColumnOptions">
-                Options (comma-separated)
-              </Label>
-              <Input
-                id="editColumnOptions"
-                value={
-                  editingColumn.allowedValues
-                    ? editingColumn.allowedValues.join(', ')
-                    : ''
-                }
-                onChange={(e) =>
-                  onEditingColumnChange({
-                    ...editingColumn,
-                    allowedValues: e.target.value
-                      .split(',')
-                      .map((opt) => opt.trim())
-                      .filter((opt) => opt.length > 0),
-                  })
-                }
-                placeholder="Option 1, Option 2, Option 3"
-              />
-            </div>
+          {(editingColumn.type === ExtractionFieldType.LIST || editingColumn.type === ExtractionFieldType.TEXT) && (
+            <AllowedValuesInput
+              label="Allowed Values (optional)"
+              values={editingColumn.allowedValues || []}
+              onChange={(values) =>
+                onEditingColumnChange({
+                  ...editingColumn,
+                  allowedValues: values,
+                })
+              }
+              placeholder="Type a value and press Enter"
+            />
           )}
         </div>
 

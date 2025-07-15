@@ -21,6 +21,7 @@ import {
 import { Textarea } from '@/app/components/ui/textarea'
 import { ExtractionFieldType } from '@/lib/consts'
 import type { NewColumn } from './grid-types'
+import { AllowedValuesInput } from './allowed-values-input'
 
 interface AddColumnDialogProps {
   open: boolean
@@ -107,29 +108,22 @@ export const AddColumnDialog = ({
                 <SelectItem value="currency">Currency</SelectItem>
                 <SelectItem value="list">List</SelectItem>
                 <SelectItem value="object_list">Object List</SelectItem>
-                <SelectItem value="select">Select (Dropdown)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {newColumn.type === ExtractionFieldType.SELECT && (
-            <div className="grid gap-2">
-              <Label htmlFor="columnOptions">Options (comma-separated)</Label>
-              <Input
-                id="columnOptions"
-                value={newColumn.allowedValues?.join(', ') || ''}
-                onChange={(e) =>
-                  onNewColumnChange({
-                    ...newColumn,
-                    allowedValues: e.target.value
-                      .split(',')
-                      .map((opt) => opt.trim())
-                      .filter((opt) => opt.length > 0),
-                  })
-                }
-                placeholder="Option 1, Option 2, Option 3"
-              />
-            </div>
+          {(newColumn.type === ExtractionFieldType.LIST || newColumn.type === ExtractionFieldType.TEXT) && (
+            <AllowedValuesInput
+              label="Allowed Values (optional)"
+              values={newColumn.allowedValues || []}
+              onChange={(values) =>
+                onNewColumnChange({
+                  ...newColumn,
+                  allowedValues: values,
+                })
+              }
+              placeholder="Type a value and press Enter"
+            />
           )}
         </div>
 

@@ -291,7 +291,7 @@ export const useGrid = (initialCollection: DocumentCollectionDTO, initialDocumen
       description: newColumn.description.trim() || undefined,
       customPrompt: newColumn.customPrompt.trim() || undefined,
       allowedValues:
-        newColumn.type === ExtractionFieldType.SELECT
+        (newColumn.type === ExtractionFieldType.LIST || newColumn.type === ExtractionFieldType.TEXT)
           ? newColumn.allowedValues
           : undefined,
       objectSchema:
