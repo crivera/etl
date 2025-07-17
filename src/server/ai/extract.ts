@@ -164,7 +164,7 @@ function createExtractionSchema(fields: ExtractionField[]) {
         schemaObject[field.id] = z.number().optional()
         break
       case 'date':
-        schemaObject[field.id] = z.string().datetime().optional()
+        schemaObject[field.id] = z.iso.datetime().optional()
         break
       case 'currency':
         schemaObject[field.id] = z.string().optional()
@@ -191,7 +191,7 @@ function createExtractionSchema(fields: ExtractionField[]) {
                 objectSchemaObj[key] = z.number().optional()
                 break
               case 'date':
-                objectSchemaObj[key] = z.string().datetime().optional()
+                objectSchemaObj[key] = z.iso.datetime().optional()
                 break
               case 'currency':
                 objectSchemaObj[key] = z.string().optional()
@@ -200,6 +200,7 @@ function createExtractionSchema(fields: ExtractionField[]) {
                 objectSchemaObj[key] = z.boolean().optional()
                 break
               default:
+                // Handle any unknown types as strings
                 objectSchemaObj[key] = z.string().optional()
                 break
             }
@@ -210,6 +211,10 @@ function createExtractionSchema(fields: ExtractionField[]) {
           // Fallback to array of any objects if no schema defined
           schemaObject[field.id] = z.array(z.record(z.string(), z.any())).optional()
         }
+        break
+      default:
+        // Handle any unknown field types as strings
+        schemaObject[field.id] = z.string().optional()
         break
     }
   }
