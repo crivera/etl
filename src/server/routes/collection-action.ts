@@ -3,7 +3,7 @@
 import { BASE_URL } from '@/app/robots'
 import { env } from '@/env'
 import { DocumentStatus, ExtractionFieldSchema, ExtractDocumentSchema } from '@/lib/consts'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import { default as collectionStore } from '../db/collection-store'
 import documentStore from '../db/document-store'
 import extractedDataStore from '../db/extracted-data-store'

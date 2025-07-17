@@ -1,16 +1,16 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { useAction } from 'next-safe-action/hooks'
-import { toast } from 'sonner'
-import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
-import type { SortingState, ColumnFiltersState } from '@tanstack/react-table'
+import { useRealtime } from '@/hooks/use-realtime'
 import type { DocumentCollectionDTO, DocumentItem, ExtractionField } from '@/lib/consts'
 import { DocumentStatus, ExtractionFieldType } from '@/lib/consts'
-import { uploadFiles, deleteDocument, rerunExtraction } from '@/server/routes/document-action'
 import { getDocumentsForCollection, updateCollectionFields } from '@/server/routes/collection-action'
+import { deleteDocument, rerunExtraction, uploadFiles } from '@/server/routes/document-action'
 import { updateExtractedData } from '@/server/routes/extracted-data-action'
-import { getColumnId, createEmptyExtractedData } from './grid-utils'
+import type { ColumnFiltersState, SortingState } from '@tanstack/react-table'
+import { useAction } from 'next-safe-action/hooks'
+import { useCallback, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import type { EditingCell, NewColumn } from './grid-types'
+import { createEmptyExtractedData, getColumnId } from './grid-utils'
 
 export const useGrid = (initialCollection: DocumentCollectionDTO, initialDocuments: DocumentItem[]) => {
   const { user } = useAuth()
@@ -425,23 +425,7 @@ export const useGrid = (initialCollection: DocumentCollectionDTO, initialDocumen
     }
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const newFiles = Array.from(e.dataTransfer.files)
-      handleFilesUpload(newFiles)
-    }
-  }, [])
-
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files)
-      handleFilesUpload(newFiles)
-    }
-  }, [])
 
   const handleFilesUpload = useCallback((files: File[]) => {
     // If collection has no fields, only allow single file upload
@@ -462,6 +446,25 @@ export const useGrid = (initialCollection: DocumentCollectionDTO, initialDocumen
 
     uploadFilesAction({ files, collectionId: collection.id })
   }, [collection.fields.length, rows.length, collection.id, uploadFilesAction])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const newFiles = Array.from(e.dataTransfer.files)
+      handleFilesUpload(newFiles)
+    }
+  }, [handleFilesUpload])
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files)
+      handleFilesUpload(newFiles)
+    }
+  }, [handleFilesUpload])
+
 
   return {
     // State

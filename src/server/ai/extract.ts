@@ -166,7 +166,7 @@ export async function extractDataFromUnknownFile(text: ExtractedText) {
 
   const { object } = await generateObject({
     model,
-    schema: z.record(z.any()),
+    schema: z.record(z.string(), z.any()),
     prompt,
   })
   console.log(object)
@@ -237,7 +237,7 @@ function createExtractionSchema(fields: ExtractionField[]) {
           schemaObject[field.id] = z.array(z.object(objectSchemaObj)).optional()
         } else {
           // Fallback to array of any objects if no schema defined
-          schemaObject[field.id] = z.array(z.record(z.any())).optional()
+          schemaObject[field.id] = z.array(z.record(z.string(), z.any())).optional()
         }
         break
     }

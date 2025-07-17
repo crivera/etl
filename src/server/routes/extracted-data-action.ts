@@ -11,7 +11,7 @@ import {
   ObjectField,
 } from '@/lib/consts'
 import { env } from 'process'
-import z from 'zod/v4'
+import z from 'zod'
 import { extractDataFromText, extractDataFromUnknownFile } from '../ai/extract'
 import documentStore from '../db/document-store'
 import extractedDataStore from '../db/extracted-data-store'

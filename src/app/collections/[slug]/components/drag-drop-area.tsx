@@ -1,14 +1,13 @@
 'use client'
 
-import type React from 'react'
 import { FileUp } from 'lucide-react'
+import type React from 'react'
 
 interface DragDropAreaProps {
   dragActive: boolean
   onDrag: (e: React.DragEvent) => void
   onDrop: (e: React.DragEvent) => void
   hasFields: boolean
-  hasDocuments: boolean
 }
 
 export const DragDropArea = ({
@@ -16,7 +15,6 @@ export const DragDropArea = ({
   onDrag,
   onDrop,
   hasFields,
-  hasDocuments,
 }: DragDropAreaProps) => {
   return (
     <div

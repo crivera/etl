@@ -9,7 +9,7 @@ import {
 import { createId } from '@paralleldrive/cuid2'
 import { generate } from '@pdfme/generator'
 import { checkbox, date, text } from '@pdfme/schemas'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import templateStore from '../db/template-store'
 import {
   mapTemplatesToTemplateDTOs,

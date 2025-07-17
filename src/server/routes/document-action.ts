@@ -14,7 +14,7 @@ import {
 } from '@/lib/consts'
 import { createId } from '@paralleldrive/cuid2'
 import { zfd } from 'zod-form-data'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import ocr from '../ai/ocr'
 import collectionStore from '../db/collection-store'
 import documentStore from '../db/document-store'

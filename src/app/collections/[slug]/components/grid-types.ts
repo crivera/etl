@@ -1,4 +1,4 @@
-import type { DocumentCollectionDTO, DocumentItem, DocumentStatus, ExtractionField, ExtractionFieldType, ObjectField } from '@/lib/consts'
+import type { DocumentCollectionDTO, DocumentItem, ExtractionField, ExtractionFieldType, ObjectField } from '@/lib/consts'
 
 export interface GridProps {
   initialCollection: DocumentCollectionDTO

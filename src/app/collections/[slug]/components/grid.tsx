@@ -1,6 +1,5 @@
 'use client'
 
-import type React from 'react'
 import { Button } from '@/app/components/ui/button'
 import { Card } from '@/app/components/ui/card'
 import {
@@ -17,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/app/components/ui/select'
-import type { DocumentCollectionDTO, DocumentItem, ExtractionField } from '@/lib/consts'
+import type { DocumentItem } from '@/lib/consts'
 import { ExtractionFieldType } from '@/lib/consts'
 import {
   createColumnHelper,
@@ -33,22 +32,22 @@ import {
   ArrowUp,
   ArrowUpDown,
   Edit,
+  FileUp,
   MoreVertical,
   Plus,
   RefreshCw,
   Trash2,
-  FileUp,
 } from 'lucide-react'
 import { useMemo } from 'react'
 
-import { ListDisplay } from './list-display'
 import { AddColumnDialog } from './add-column-dialog'
-import { EditColumnDialog } from './edit-column-dialog'
 import { DragDropArea } from './drag-drop-area'
+import { EditColumnDialog } from './edit-column-dialog'
+import type { GridProps } from './grid-types'
+import { formatCellValue, getFileIcon, getStatusBadge } from './grid-utils'
+import { ListDisplay } from './list-display'
 import { SearchAndStats } from './search-and-stats'
 import { useGrid } from './use-grid'
-import { getFileIcon, getStatusBadge, formatCellValue } from './grid-utils'
-import type { GridProps } from './grid-types'
 
 export const DataGrid = ({ initialCollection, initialDocuments }: GridProps) => {
   const {
@@ -348,6 +347,7 @@ export const DataGrid = ({ initialCollection, initialDocuments }: GridProps) => 
     handleCellCancel,
     handleCellEdit,
     setEditValue,
+    setIsAddColumnDialogOpen,
   ])
 
   // Create table instance
@@ -394,7 +394,6 @@ export const DataGrid = ({ initialCollection, initialDocuments }: GridProps) => 
         onDrag={handleDrag}
         onDrop={handleDrop}
         hasFields={collection.fields.length > 0}
-        hasDocuments={rows.length > 0}
       />
 
       {/* TanStack Table with Sticky First Column */}
