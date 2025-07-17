@@ -11,6 +11,43 @@ const google = createGoogleGenerativeAI({
 
 const model = google('gemini-2.5-flash')
 
+const createPrompt = ( fields: ExtractionField[]) => {
+  return `
+    You are an expert data extraction AI.
+    Your goal is to accurately identify and extract the following details from the document provided:
+
+    ${fields
+      .map((field, index) => {
+        const description =
+          field.customPrompt ||
+          field.description ||
+          'Extract this field value'
+        let fieldDescription = `${index + 1}. **${field.label}**: ${description}`
+
+        if (field.type === 'object_list' && field.objectSchema) {
+          fieldDescription +=
+            '\n   This should be an array of objects with the following structure:'
+          Object.entries(field.objectSchema).forEach(
+            ([key, objectField]) => {
+              fieldDescription += `\n   - ${key} (${objectField.type}): ${objectField.description || objectField.label}`
+            },
+          )
+        } else if (field.type === 'list') {
+          fieldDescription += ' (Return as an array of values)'
+        }
+
+        return fieldDescription
+      })
+      .join('\n')}
+
+    Present the extracted information as a single JSON object. Use the following keys:
+    ${fields.map((field) => `- "${field.id}"`).join('\n')}
+
+    If a specific piece of information cannot be found, its corresponding value in the JSON object should be "null".
+    Prioritize accuracy and only extract information explicitly present in the document.
+  `
+}
+
 /**
  * Extract data from text
  * @param text - The text to extract data from
@@ -26,43 +63,10 @@ export async function extractDataFromText(
   const objects = []
 
   for (const page of text) {
-    const prompt = `
-        You are an expert data extraction AI.
-        Your goal is to accurately identify and extract the following details from the unstructured text provided below:
-
-        ${fields
-          .map((field, index) => {
-            const description =
-              field.customPrompt ||
-              field.description ||
-              'Extract this field value'
-            let fieldDescription = `${index + 1}. **${field.label}**: ${description}`
-
-            if (field.type === 'object_list' && field.objectSchema) {
-              fieldDescription +=
-                '\n   This should be an array of objects with the following structure:'
-              Object.entries(field.objectSchema).forEach(
-                ([key, objectField]) => {
-                  fieldDescription += `\n   - ${key} (${objectField.type}): ${objectField.description || objectField.label}`
-                },
-              )
-            } else if (field.type === 'list') {
-              fieldDescription += ' (Return as an array of values)'
-            }
-
-            return fieldDescription
-          })
-          .join('\n')}
-
-        Present the extracted information as a single JSON object. Use the following keys:
-        ${fields.map((field) => `- "${field.id}"`).join('\n')}
-
-        If a specific piece of information cannot be found, its corresponding value in the JSON object should be null.
-        Prioritize accuracy and only extract information explicitly present in the text.
-
-        <text>
+    const prompt = createPrompt(fields) + `
+        <document>
         ${page.text}
-        </text>
+        </document>
       `
 
     const { object } = await generateObject({
@@ -100,40 +104,7 @@ export async function extractDataFromFile(
         content: [
           {
             type: 'text',
-            text: `
-              You are an expert data extraction AI.
-              Your goal is to accurately identify and extract the following details from the document provided:
-
-              ${fields
-                .map((field, index) => {
-                  const description =
-                    field.customPrompt ||
-                    field.description ||
-                    'Extract this field value'
-                  let fieldDescription = `${index + 1}. **${field.label}**: ${description}`
-
-                  if (field.type === 'object_list' && field.objectSchema) {
-                    fieldDescription +=
-                      '\n   This should be an array of objects with the following structure:'
-                    Object.entries(field.objectSchema).forEach(
-                      ([key, objectField]) => {
-                        fieldDescription += `\n   - ${key} (${objectField.type}): ${objectField.description || objectField.label}`
-                      },
-                    )
-                  } else if (field.type === 'list') {
-                    fieldDescription += ' (Return as an array of values)'
-                  }
-
-                  return fieldDescription
-                })
-                .join('\n')}
-
-              Present the extracted information as a single JSON object. Use the following keys:
-              ${fields.map((field) => `- "${field.id}"`).join('\n')}
-
-              If a specific piece of information cannot be found, its corresponding value in the JSON object should be "null".
-              Prioritize accuracy and only extract information explicitly present in the document.
-            `,
+            text: createPrompt(fields),
           },
           {
             type: 'file',
